@@ -52,7 +52,7 @@ export default async function Home() {
           <li><a href="#finanzas">Temporada</a></li>
           <li><a href="#recorrido">Recorrido</a></li>
           <li><a href="#donaciones">Apoyar</a></li>
-          <li><a href="https://youtube.com/@juanvilas" target="_blank">YouTube ↗</a></li>
+          <li><a href="https://youtube.com/" target="_blank">YouTube ↗</a></li>
         </ul>
       </nav>
 
