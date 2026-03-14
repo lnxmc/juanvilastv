@@ -5,7 +5,7 @@ import FinanzasSection from '@/components/FinanzasSection'
 import RecorridoSection from '@/components/RecorridoSection'
 import DonacionesSection from '@/components/DonacionesSection'
 
-export const revalidate = 3600
+export const revalidate = 60
 
 export default async function Home() {
   const cookieStore = await cookies()
