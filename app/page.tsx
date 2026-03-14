@@ -12,35 +12,24 @@ export default async function Home() {
   const supabase = await createClient(cookieStore)
 
   const { data: temporada } = await supabase
-    .from('temporadas')
-    .select('*')
-    .eq('activa', true)
-    .single()
+    .from('temporadas').select('*').eq('activa', true).single()
 
   const { data: gastos } = await supabase
-    .from('gastos')
-    .select('*')
-    .eq('temporada_id', temporada?.id)
-    .order('fecha', { ascending: false })
+    .from('gastos').select('*').eq('temporada_id', temporada?.id).order('fecha', { ascending: false })
 
   const { data: ingresos } = await supabase
-    .from('ingresos')
-    .select('*')
-    .eq('temporada_id', temporada?.id)
-    .order('fecha', { ascending: false })
+    .from('ingresos').select('*').eq('temporada_id', temporada?.id).order('fecha', { ascending: false })
 
   const { data: temporadasRaw } = await supabase
-    .from('temporadas')
-    .select('*')
-    .order('id')
-
-  const temporadas = temporadasRaw ?? []
+    .from('temporadas').select('*').order('id')
 
   const { data: hitos } = await supabase
-    .from('hitos')
-    .select('*')
-    .order('orden')
+    .from('hitos').select('*').order('orden')
 
+  const { data: config } = await supabase
+    .from('configuracion').select('valor').eq('clave', 'video_youtube').single()
+
+  const videoUrl = config?.valor ?? ''
   const totalGastos = gastos?.reduce((acc, g) => acc + Number(g.importe), 0) ?? 0
   const totalIngresos = ingresos?.reduce((acc, i) => acc + Number(i.importe), 0) ?? 0
 
@@ -52,15 +41,15 @@ export default async function Home() {
           <li><a href="#finanzas">Temporada</a></li>
           <li><a href="#recorrido">Recorrido</a></li>
           <li><a href="#donaciones">Apoyar</a></li>
-          <li><a href="https://youtube.com/" target="_blank">YouTube ↗</a></li>
+          <li><a href="https://youtube.com/@juanvilas" target="_blank">YouTube ↗</a></li>
         </ul>
       </nav>
 
       <main>
-        <HeroSection />
+        <HeroSection videoUrl={videoUrl} />
         <FinanzasSection
           temporada={temporada}
-          temporadas={temporadas}
+          temporadas={temporadasRaw ?? []}
           gastos={gastos ?? []}
           ingresos={ingresos ?? []}
           totalGastos={totalGastos}
@@ -71,9 +60,7 @@ export default async function Home() {
       </main>
 
       <footer>
-        <div>
-          <div className="footer-brand">Juan Vilas <span>— juanvilas.com</span></div>
-        </div>
+        <div><div className="footer-brand">Juan Vilas <span>— juanvilas.com</span></div></div>
         <div className="footer-links">
           <a href="#finanzas">Temporada</a>
           <a href="#recorrido">Recorrido</a>
