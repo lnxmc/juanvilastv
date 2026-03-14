@@ -2,11 +2,10 @@
 
 type Gasto = { id: number; nombre: string; importe: number; categoria: string; emoji: string; fecha: string; notas?: string }
 type Ingreso = { id: number; nombre: string; importe: number; categoria: string; emoji: string; fecha: string; kilos_aceituna?: number; precio_kilo?: number }
-type Temporada = { id: number; año: number; activa: boolean }
 
 interface Props {
-  temporada: Temporada | null
-  temporadas: { id: number; año: number }[]
+  temporada: any
+  temporadas: any[]
   gastos: Gasto[]
   ingresos: Ingreso[]
   totalGastos: number

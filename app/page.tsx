@@ -29,10 +29,12 @@ export default async function Home() {
     .eq('temporada_id', temporada?.id)
     .order('fecha', { ascending: false })
 
-  const { data: temporadas } = await supabase
+  const { data: temporadasRaw } = await supabase
     .from('temporadas')
-    .select('id, año')
-    .order('año')
+    .select('*')
+    .order('id')
+
+  const temporadas = temporadasRaw ?? []
 
   const { data: hitos } = await supabase
     .from('hitos')
@@ -58,7 +60,7 @@ export default async function Home() {
         <HeroSection />
         <FinanzasSection
           temporada={temporada}
-          temporadas={temporadas ?? []}
+          temporadas={temporadas}
           gastos={gastos ?? []}
           ingresos={ingresos ?? []}
           totalGastos={totalGastos}
