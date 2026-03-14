@@ -1,6 +1,3 @@
-// app/admin/page.tsx — Panel privado de administración
-// Solo accesible si estás autenticado con tu cuenta de Supabase
-
 'use client'
 
 export const dynamic = 'force-dynamic'
@@ -12,7 +9,6 @@ import { useRouter } from 'next/navigation'
 type Tab = 'gastos' | 'ingresos' | 'hitos'
 
 export default function AdminPage() {
-  const supabase = createClient()
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('gastos')
   const [loading, setLoading] = useState(false)
@@ -20,6 +16,7 @@ export default function AdminPage() {
 
   // ── Proteger la ruta ──
   useEffect(() => {
+    const supabase = createClient()
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) router.push('/admin/login')
     })
@@ -42,7 +39,7 @@ export default function AdminPage() {
   async function saveGasto(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    // Obtener temporada activa
+    const supabase = createClient()
     const { data: temp } = await supabase.from('temporadas').select('id').eq('activa', true).single()
     const { error } = await supabase.from('gastos').insert({
       temporada_id: temp?.id,
@@ -66,6 +63,7 @@ export default function AdminPage() {
   async function saveIngreso(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+    const supabase = createClient()
     const { data: temp } = await supabase.from('temporadas').select('id').eq('activa', true).single()
     const { error } = await supabase.from('ingresos').insert({
       temporada_id: temp?.id,
@@ -87,15 +85,6 @@ export default function AdminPage() {
     setTimeout(() => setMsg(''), 3000)
   }
 
-  // ── Marcar hito completado ──
-  async function toggleHito(id: number, completado: boolean) {
-    await supabase.from('hitos').update({
-      completado: !completado,
-      fecha_completado: !completado ? new Date().toISOString().split('T')[0] : null
-    }).eq('id', id)
-    router.refresh()
-  }
-
   const inputStyle = {
     background: '#1b2415', border: '1px solid rgba(200,160,74,0.3)',
     color: '#f0e6c8', padding: '0.7rem 1rem', width: '100%',
@@ -112,13 +101,11 @@ export default function AdminPage() {
     <div style={{ minHeight: '100vh', background: '#0e120b', color: '#f0e6c8', padding: '2rem', fontFamily: 'Georgia, serif' }}>
       <div style={{ maxWidth: 700, margin: '0 auto' }}>
 
-        {/* Header */}
         <div style={{ marginBottom: '3rem' }}>
           <h1 style={{ fontFamily: 'Georgia', fontSize: '2rem', color: '#c8a04a', marginBottom: '0.3rem' }}>Panel Admin</h1>
           <p style={{ color: '#b8a87a', fontStyle: 'italic' }}>juanvilas.com — gestión de temporada</p>
         </div>
 
-        {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2.5rem' }}>
           {(['gastos', 'ingresos', 'hitos'] as Tab[]).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
@@ -131,7 +118,6 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* Mensaje de feedback */}
         {msg && (
           <div style={{
             padding: '1rem', marginBottom: '1.5rem',
@@ -142,7 +128,6 @@ export default function AdminPage() {
           }}>{msg}</div>
         )}
 
-        {/* ── TAB GASTOS ── */}
         {tab === 'gastos' && (
           <form onSubmit={saveGasto}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem', marginBottom: '1.2rem' }}>
@@ -199,7 +184,6 @@ export default function AdminPage() {
           </form>
         )}
 
-        {/* ── TAB INGRESOS ── */}
         {tab === 'ingresos' && (
           <form onSubmit={saveIngreso}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem', marginBottom: '1.2rem' }}>
@@ -250,25 +234,23 @@ export default function AdminPage() {
           </form>
         )}
 
-        {/* ── TAB HITOS ── */}
-        {tab === 'hitos' && (
-          <HitosTab supabase={supabase} />
-        )}
+        {tab === 'hitos' && <HitosTab />}
 
       </div>
     </div>
   )
 }
 
-// Componente separado para los hitos
-function HitosTab({ supabase }: { supabase: any }) {
+function HitosTab() {
   const [hitos, setHitos] = useState<any[]>([])
 
   useEffect(() => {
+    const supabase = createClient()
     supabase.from('hitos').select('*').order('orden').then(({ data }: any) => setHitos(data ?? []))
   }, [])
 
   async function toggle(id: number, completado: boolean) {
+    const supabase = createClient()
     await supabase.from('hitos').update({
       completado: !completado,
       fecha_completado: !completado ? new Date().toISOString().split('T')[0] : null
@@ -280,13 +262,13 @@ function HitosTab({ supabase }: { supabase: any }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
       {hitos.map(h => (
-        <div key={h.id} style={{
+        <div key={h.id} onClick={() => toggle(h.id, h.completado)} style={{
           display: 'flex', alignItems: 'center', gap: '1rem',
           padding: '1rem 1.2rem',
           background: h.completado ? 'rgba(107,140,58,0.08)' : '#1b2415',
           border: `1px solid ${h.completado ? 'rgba(107,140,58,0.4)' : 'rgba(200,160,74,0.2)'}`,
-          cursor: 'pointer', transition: 'all 0.2s'
-        }} onClick={() => toggle(h.id, h.completado)}>
+          cursor: 'pointer',
+        }}>
           <span style={{ fontSize: '1.5rem' }}>{h.emoji}</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 600, color: h.completado ? '#8fbc50' : '#f0e6c8' }}>{h.nombre}</div>
