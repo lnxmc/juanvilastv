@@ -380,4 +380,27 @@ footer {
     flex-direction: column;
     width: 100%;
   }
+
+  /* Ocultar nav mobile en desktop */
+.nav-mobile-links {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+  }
+  .nav-mobile-links {
+    display: flex;
+    gap: 1rem;
+  }
+  .nav-mobile-links a {
+    color: var(--cream-dim);
+    text-decoration: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}
 }
