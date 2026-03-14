@@ -40,6 +40,7 @@ body::before {
   opacity: 0.4;
 }
 
+/* ─── NAV ─── */
 nav {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -53,32 +54,40 @@ nav {
 }
 .nav-logo {
   font-family: 'Playfair Display', serif;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--gold);
   letter-spacing: 0.05em;
   text-decoration: none;
+  white-space: nowrap;
 }
 .nav-logo span { color: var(--cream-dim); font-weight: 400; font-style: italic; }
-.nav-links { display: flex; gap: 2.5rem; list-style: none; }
+.nav-links { display: flex; gap: 2rem; list-style: none; }
 .nav-links a {
   color: var(--cream-dim);
   text-decoration: none;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-family: 'Space Mono', monospace;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   transition: color 0.3s;
+  white-space: nowrap;
 }
 .nav-links a:hover { color: var(--gold); }
 
-section { padding: 7rem 3rem; }
+/* ─── SECTIONS ─── */
+section {
+  padding: 7rem 3rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
 
 .section-header {
   margin-bottom: 4rem;
   display: flex;
   align-items: baseline;
-  gap: 2rem;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 .section-number {
   font-family: 'Space Mono', monospace;
@@ -86,10 +95,11 @@ section { padding: 7rem 3rem; }
   letter-spacing: 0.2em;
   color: var(--gold);
   opacity: 0.7;
+  flex-shrink: 0;
 }
 .section-title {
   font-family: 'Playfair Display', serif;
-  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
   font-weight: 700;
   color: var(--cream);
   line-height: 1.15;
@@ -99,10 +109,10 @@ section { padding: 7rem 3rem; }
   flex: 1;
   height: 1px;
   background: var(--border);
-  margin-left: auto;
-  max-width: 200px;
+  min-width: 40px;
 }
 
+/* ─── BUTTONS ─── */
 .btn-primary {
   background: var(--gold);
   color: var(--bg-deep);
@@ -124,7 +134,6 @@ section { padding: 7rem 3rem; }
   transform: translateY(-2px);
   box-shadow: 0 8px 30px rgba(200,160,74,0.3);
 }
-
 .btn-ghost {
   background: transparent;
   color: var(--cream-dim);
@@ -142,6 +151,49 @@ section { padding: 7rem 3rem; }
 }
 .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
 
+/* ─── HERO ─── */
+#hero {
+  min-height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 8rem 3rem 4rem;
+  overflow: hidden;
+  max-width: 100% !important;
+}
+
+.hero-grid {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+  max-width: 1200px;
+}
+.hero-grid.no-video {
+  grid-template-columns: 1fr;
+}
+
+/* ─── FINANCE GRID ─── */
+.finance-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+/* ─── ROADMAP ─── */
+.milestones-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  position: relative;
+}
+
+/* ─── FOOTER ─── */
 footer {
   background: #090d07;
   padding: 3rem;
@@ -159,7 +211,7 @@ footer {
   color: var(--gold);
 }
 .footer-brand span { color: var(--cream-dim); font-weight: 400; font-style: italic; font-size: 1rem; }
-.footer-links { display: flex; gap: 2rem; }
+.footer-links { display: flex; gap: 2rem; flex-wrap: wrap; }
 .footer-links a {
   font-family: 'Space Mono', monospace;
   font-size: 0.65rem;
@@ -177,10 +229,155 @@ footer {
   opacity: 0.5;
 }
 
-@media (max-width: 600px) {
-  nav { padding: 1rem 1.5rem; }
-  .nav-links { display: none; }
+/* ════════════════════════════════
+   TABLET — max 1024px
+════════════════════════════════ */
+@media (max-width: 1024px) {
+  nav { padding: 1rem 2rem; }
+  .nav-logo span { display: none; }
+  .nav-links { gap: 1.5rem; }
+
+  section { padding: 5rem 2rem; }
+
+  #hero { padding: 7rem 2rem 3rem; }
+
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .finance-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .milestones-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  footer { padding: 2rem; }
+}
+
+/* ════════════════════════════════
+   MOBILE — max 768px
+════════════════════════════════ */
+@media (max-width: 768px) {
+  body { font-size: 16px; }
+
+  /* Nav móvil */
+  nav {
+    padding: 1rem 1.5rem;
+    background: rgba(14,18,11,0.98);
+  }
+  .nav-logo { font-size: 1rem; }
+  .nav-links {
+    display: none; /* Ocultamos links en móvil, dejamos solo logo */
+  }
+
+  /* Menú hamburguesa simple */
+  .nav-mobile-links {
+    display: flex;
+    gap: 1rem;
+  }
+  .nav-mobile-links a {
+    color: var(--cream-dim);
+    text-decoration: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Hero móvil */
+  #hero {
+    padding: 6rem 1.5rem 3rem;
+    min-height: auto;
+    padding-bottom: 4rem;
+  }
+
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  /* Finanzas móvil */
   section { padding: 4rem 1.5rem; }
-  footer { flex-direction: column; text-align: center; }
-  .footer-links { flex-wrap: wrap; justify-content: center; }
+
+  .finance-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  /* Ocultar stats hero en móvil */
+  .hero-stats-bottom { display: none !important; }
+
+  /* Recorrido móvil */
+  .milestones-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  /* Línea decorativa del roadmap */
+  .roadmap-line { display: none; }
+
+  /* Botones más pequeños */
+  .btn-primary, .btn-ghost {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.7rem;
+  }
+
+  /* Footer móvil */
+  footer {
+    flex-direction: column;
+    text-align: center;
+    padding: 2rem 1.5rem;
+    gap: 1rem;
+  }
+  .footer-links { justify-content: center; gap: 1.2rem; }
+
+  /* Tablas de finanzas */
+  .finance-item-grid {
+    grid-template-columns: 40px 1fr auto !important;
+    gap: 0.7rem !important;
+  }
+
+  /* Balance section */
+  .balance-section-wrap {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+}
+
+/* ════════════════════════════════
+   MOBILE SMALL — max 480px
+════════════════════════════════ */
+@media (max-width: 480px) {
+  #hero { padding: 5rem 1.2rem 3rem; }
+  section { padding: 3rem 1.2rem; }
+
+  .milestones-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+  }
+
+  .section-header {
+    margin-bottom: 2rem;
+    gap: 0.8rem;
+  }
+
+  .section-divider { display: none; }
+
+  footer { padding: 1.5rem 1.2rem; }
+
+  .btn-primary, .btn-ghost {
+    width: 100%;
+    text-align: center;
+    padding: 0.8rem 1rem;
+  }
+
+  /* Hero CTA full width */
+  .hero-cta {
+    flex-direction: column;
+    width: 100%;
+  }
 }

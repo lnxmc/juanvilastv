@@ -37,12 +37,19 @@ export default async function Home() {
     <>
       <nav>
         <a className="nav-logo" href="#">Juan Vilas <span>— del código al olivar</span></a>
+        {/* Desktop links */}
         <ul className="nav-links">
           <li><a href="#finanzas">Temporada</a></li>
           <li><a href="#recorrido">Recorrido</a></li>
           <li><a href="#donaciones">Apoyar</a></li>
           <li><a href="https://youtube.com/@juanvilas" target="_blank">YouTube ↗</a></li>
         </ul>
+        {/* Mobile links */}
+        <div className="nav-mobile-links">
+          <a href="#finanzas">Cuentas</a>
+          <a href="#recorrido">Ruta</a>
+          <a href="#donaciones">Apoyar</a>
+        </div>
       </nav>
 
       <main>
