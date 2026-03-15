@@ -172,7 +172,7 @@ section {
   z-index: 1;
   width: 100%;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1.4fr;
   gap: 4rem;
   align-items: center;
   max-width: 1200px;
