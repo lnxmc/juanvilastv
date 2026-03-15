@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 
-type Tab = 'gastos' | 'ingresos' | 'hitos' | 'video'
+type Tab = 'gastos' | 'ingresos' | 'hitos' | 'temporadas' | 'video'
 
 export default function AdminPage() {
   const router = useRouter()
@@ -33,8 +33,7 @@ export default function AdminPage() {
   })
 
   async function saveGasto(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault(); setLoading(true)
     const s = createClient()
     const { data: temp } = await s.from('temporadas').select('id').eq('activa', true).single()
     const { error } = await s.from('gastos').insert({
@@ -48,8 +47,7 @@ export default function AdminPage() {
   }
 
   async function saveIngreso(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault(); setLoading(true)
     const s = createClient()
     const { data: temp } = await s.from('temporadas').select('id').eq('activa', true).single()
     const { error } = await s.from('ingresos').insert({
@@ -78,8 +76,10 @@ export default function AdminPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
-          {(['gastos', 'ingresos', 'hitos', 'video'] as Tab[]).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={tabBtn(t)}>{t === 'video' ? '▶ Vídeo' : t}</button>
+          {(['gastos', 'ingresos', 'hitos', 'temporadas', 'video'] as Tab[]).map(t => (
+            <button key={t} onClick={() => setTab(t)} style={tabBtn(t)}>
+              {t === 'video' ? '▶ Vídeo' : t === 'temporadas' ? '📅 Temporadas' : t}
+            </button>
           ))}
         </div>
 
@@ -87,6 +87,7 @@ export default function AdminPage() {
           <div style={{ padding: '1rem', marginBottom: '1.5rem', background: msg.startsWith('✓') ? 'rgba(39,174,96,0.1)' : 'rgba(192,57,43,0.1)', border: `1px solid ${msg.startsWith('✓') ? 'rgba(39,174,96,0.4)' : 'rgba(192,57,43,0.4)'}`, color: msg.startsWith('✓') ? '#2ecc71' : '#e74c3c', fontFamily: 'monospace', fontSize: '0.85rem' }}>{msg}</div>
         )}
 
+        {/* ── GASTOS ── */}
         {tab === 'gastos' && (
           <div>
             <form onSubmit={saveGasto} style={{ marginBottom: '3rem' }}>
@@ -109,6 +110,7 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ── INGRESOS ── */}
         {tab === 'ingresos' && (
           <div>
             <form onSubmit={saveIngreso} style={{ marginBottom: '3rem' }}>
@@ -128,6 +130,7 @@ export default function AdminPage() {
         )}
 
         {tab === 'hitos' && <HitosTab onMsg={setMsg} />}
+        {tab === 'temporadas' && <TemporadasTab onMsg={setMsg} />}
         {tab === 'video' && <VideoTab onMsg={setMsg} />}
       </div>
     </div>
@@ -140,9 +143,8 @@ function GastosLista({ onMsg }: { onMsg: (m: string) => void }) {
   async function cargar() { const s = createClient(); const { data } = await s.from('gastos').select('*').order('fecha', { ascending: false }); setGastos(data ?? []) }
   async function eliminar(id: number) {
     if (!confirm('¿Eliminar este gasto?')) return
-    const s = createClient(); const { error } = await s.from('gastos').delete().eq('id', id)
-    if (error) onMsg('❌ Error'); else { onMsg('✓ Gasto eliminado'); cargar() }
-    setTimeout(() => onMsg(''), 3000)
+    const s = createClient(); await s.from('gastos').delete().eq('id', id)
+    onMsg('✓ Gasto eliminado'); cargar(); setTimeout(() => onMsg(''), 3000)
   }
   return (
     <div>
@@ -171,9 +173,8 @@ function IngresosLista({ onMsg }: { onMsg: (m: string) => void }) {
   async function cargar() { const s = createClient(); const { data } = await s.from('ingresos').select('*').order('fecha', { ascending: false }); setIngresos(data ?? []) }
   async function eliminar(id: number) {
     if (!confirm('¿Eliminar este ingreso?')) return
-    const s = createClient(); const { error } = await s.from('ingresos').delete().eq('id', id)
-    if (error) onMsg('❌ Error'); else { onMsg('✓ Ingreso eliminado'); cargar() }
-    setTimeout(() => onMsg(''), 3000)
+    const s = createClient(); await s.from('ingresos').delete().eq('id', id)
+    onMsg('✓ Ingreso eliminado'); cargar(); setTimeout(() => onMsg(''), 3000)
   }
   return (
     <div>
@@ -196,41 +197,126 @@ function IngresosLista({ onMsg }: { onMsg: (m: string) => void }) {
   )
 }
 
+function TemporadasTab({ onMsg }: { onMsg: (m: string) => void }) {
+  const [temporadas, setTemporadas] = useState<any[]>([])
+  const [nuevoAño, setNuevoAño] = useState(new Date().getFullYear() + 1)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => { cargar() }, [])
+
+  async function cargar() {
+    const s = createClient()
+    const { data } = await s.from('temporadas').select('*').order('año')
+    setTemporadas(data ?? [])
+  }
+
+  async function añadir(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    const s = createClient()
+    const existe = temporadas.find(t => t.año === nuevoAño)
+    if (existe) { onMsg('❌ Ya existe una temporada para ese año'); setLoading(false); setTimeout(() => onMsg(''), 3000); return }
+    const { error } = await s.from('temporadas').insert({ año: nuevoAño, activa: false })
+    if (error) onMsg('❌ Error: ' + error.message)
+    else { onMsg('✓ Temporada ' + nuevoAño + ' creada'); cargar() }
+    setLoading(false); setTimeout(() => onMsg(''), 3000)
+  }
+
+  async function activar(id: number, año: number) {
+    if (!confirm(`¿Activar la temporada ${año}? Los gastos e ingresos nuevos se añadirán a esta temporada.`)) return
+    const s = createClient()
+    // Desactivar todas
+    await s.from('temporadas').update({ activa: false }).neq('id', 0)
+    // Activar la seleccionada
+    await s.from('temporadas').update({ activa: true }).eq('id', id)
+    onMsg('✓ Temporada ' + año + ' activada')
+    cargar(); setTimeout(() => onMsg(''), 3000)
+  }
+
+  async function eliminar(id: number, año: number) {
+    if (!confirm(`¿Eliminar la temporada ${año}? Se borrarán también todos sus gastos e ingresos.`)) return
+    const s = createClient()
+    await s.from('temporadas').delete().eq('id', id)
+    onMsg('✓ Temporada ' + año + ' eliminada')
+    cargar(); setTimeout(() => onMsg(''), 3000)
+  }
+
+  const inp = { background: '#1b2415', border: '1px solid rgba(200,160,74,0.3)', color: '#f0e6c8', padding: '0.7rem 1rem', fontFamily: 'inherit', fontSize: '0.95rem', outline: 'none' } as React.CSSProperties
+
+  return (
+    <div>
+      {/* Formulario nueva temporada */}
+      <form onSubmit={añadir} style={{ marginBottom: '3rem', padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(200,160,74,0.2)' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1.2rem' }}>+ Nueva temporada</div>
+        <p style={{ color: '#b8a87a', fontStyle: 'italic', fontSize: '0.9rem', marginBottom: '1.2rem', lineHeight: 1.7 }}>
+          Crea una nueva temporada al inicio de cada año. Cada temporada tiene sus propios gastos e ingresos independientes.
+        </p>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '0.4rem', fontFamily: 'monospace' }}>Año</label>
+            <input style={{...inp, width: 120}} type="number" min="2024" max="2040" value={nuevoAño} onChange={e => setNuevoAño(parseInt(e.target.value))} />
+          </div>
+          <button type="submit" disabled={loading} style={{ background: '#c8a04a', color: '#0e120b', padding: '0.9rem 2rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>
+            {loading ? 'Creando...' : '+ Crear temporada'}
+          </button>
+        </div>
+      </form>
+
+      {/* Lista de temporadas */}
+      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>
+        Temporadas ({temporadas.length})
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+        {temporadas.map(t => (
+          <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.2rem 1.5rem', background: t.activa ? 'rgba(200,160,74,0.08)' : '#1b2415', border: `1px solid ${t.activa ? 'rgba(200,160,74,0.5)' : 'rgba(200,160,74,0.15)'}` }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.3rem', fontWeight: 700, color: t.activa ? '#c8a04a' : '#f0e6c8' }}>
+                Temporada {t.año}
+              </div>
+              <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: t.activa ? '#c8a04a' : '#b8a87a', marginTop: '0.2rem' }}>
+                {t.activa ? '● ACTIVA — los gastos/ingresos nuevos van aquí' : '○ Inactiva'}
+              </div>
+            </div>
+            {!t.activa && (
+              <button onClick={() => activar(t.id, t.año)} style={{ background: 'rgba(200,160,74,0.1)', border: '1px solid rgba(200,160,74,0.3)', color: '#c8a04a', padding: '0.4rem 1rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase', flexShrink: 0 }}>
+                Activar
+              </button>
+            )}
+            {t.activa && (
+              <span style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: '#c8a04a', letterSpacing: '0.1em', flexShrink: 0 }}>✓ Activa</span>
+            )}
+            {!t.activa && (
+              <button onClick={() => eliminar(t.id, t.año)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.4rem 0.7rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', flexShrink: 0 }}>✕</button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function HitosTab({ onMsg }: { onMsg: (m: string) => void }) {
   const [hitos, setHitos] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [nuevo, setNuevo] = useState({ nombre: '', descripcion: '', emoji: '🎯', fecha_texto: '', completado: false, fecha_completado: '' })
 
   useEffect(() => { cargar() }, [])
-
-  async function cargar() {
-    const s = createClient()
-    const { data } = await s.from('hitos').select('*').order('orden')
-    setHitos(data ?? [])
-  }
+  async function cargar() { const s = createClient(); const { data } = await s.from('hitos').select('*').order('orden'); setHitos(data ?? []) }
 
   async function addHito(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault(); setLoading(true)
     const s = createClient()
     const maxOrden = hitos.length > 0 ? Math.max(...hitos.map(h => h.orden)) + 1 : 1
     const { error } = await s.from('hitos').insert({
-      nombre: nuevo.nombre || null,
-      descripcion: nuevo.descripcion || null,
-      emoji: nuevo.emoji || '🎯',
-      fecha_texto: nuevo.fecha_texto || null,
+      nombre: nuevo.nombre || null, descripcion: nuevo.descripcion || null,
+      emoji: nuevo.emoji || '🎯', fecha_texto: nuevo.fecha_texto || null,
       completado: nuevo.completado,
       fecha_completado: nuevo.completado && nuevo.fecha_completado ? nuevo.fecha_completado : null,
       orden: maxOrden
     })
     if (error) onMsg('❌ Error: ' + error.message)
-    else {
-      onMsg('✓ Hito añadido')
-      setNuevo({ nombre: '', descripcion: '', emoji: '🎯', fecha_texto: '', completado: false, fecha_completado: '' })
-      cargar()
-    }
-    setLoading(false)
-    setTimeout(() => onMsg(''), 3000)
+    else { onMsg('✓ Hito añadido'); setNuevo({ nombre: '', descripcion: '', emoji: '🎯', fecha_texto: '', completado: false, fecha_completado: '' }); cargar() }
+    setLoading(false); setTimeout(() => onMsg(''), 3000)
   }
 
   async function toggle(id: number, completado: boolean) {
@@ -241,11 +327,8 @@ function HitosTab({ onMsg }: { onMsg: (m: string) => void }) {
 
   async function eliminar(id: number) {
     if (!confirm('¿Eliminar este hito?')) return
-    const s = createClient()
-    await s.from('hitos').delete().eq('id', id)
-    onMsg('✓ Hito eliminado')
-    cargar()
-    setTimeout(() => onMsg(''), 3000)
+    const s = createClient(); await s.from('hitos').delete().eq('id', id)
+    onMsg('✓ Hito eliminado'); cargar(); setTimeout(() => onMsg(''), 3000)
   }
 
   async function mover(id: number, direccion: 'up' | 'down') {
@@ -253,12 +336,8 @@ function HitosTab({ onMsg }: { onMsg: (m: string) => void }) {
     const swapIdx = direccion === 'up' ? idx - 1 : idx + 1
     if (swapIdx < 0 || swapIdx >= hitos.length) return
     const s = createClient()
-    const a = hitos[idx]
-    const b = hitos[swapIdx]
-    await Promise.all([
-      s.from('hitos').update({ orden: b.orden }).eq('id', a.id),
-      s.from('hitos').update({ orden: a.orden }).eq('id', b.id),
-    ])
+    const a = hitos[idx]; const b = hitos[swapIdx]
+    await Promise.all([s.from('hitos').update({ orden: b.orden }).eq('id', a.id), s.from('hitos').update({ orden: a.orden }).eq('id', b.id)])
     cargar()
   }
 
@@ -267,69 +346,36 @@ function HitosTab({ onMsg }: { onMsg: (m: string) => void }) {
 
   return (
     <div>
-      {/* Formulario */}
       <form onSubmit={addHito} style={{ marginBottom: '3rem', padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(200,160,74,0.2)' }}>
         <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1.2rem' }}>+ Añadir hito</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-          <div style={{ gridColumn: '1/-1' }}>
-            <label style={lbl}>Nombre <span style={{ opacity: 0.5 }}>(opcional)</span></label>
-            <input style={inp} value={nuevo.nombre} onChange={e => setNuevo({...nuevo, nombre: e.target.value})} placeholder="Ej: Tractor pequeño" />
-          </div>
-          <div style={{ gridColumn: '1/-1' }}>
-            <label style={lbl}>Descripción <span style={{ opacity: 0.5 }}>(opcional)</span></label>
-            <input style={inp} value={nuevo.descripcion} onChange={e => setNuevo({...nuevo, descripcion: e.target.value})} placeholder="Ej: Para labores de suelo" />
-          </div>
-          <div>
-            <label style={lbl}>Emoji <span style={{ opacity: 0.5 }}>(opcional)</span></label>
-            <input style={inp} value={nuevo.emoji} onChange={e => setNuevo({...nuevo, emoji: e.target.value})} placeholder="🎯" />
-          </div>
-          <div>
-            <label style={lbl}>Fecha / objetivo <span style={{ opacity: 0.5 }}>(texto libre)</span></label>
-            <input style={inp} value={nuevo.fecha_texto} onChange={e => setNuevo({...nuevo, fecha_texto: e.target.value})} placeholder="Ej: Noviembre 2026" />
-          </div>
+          <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Nombre <span style={{ opacity: 0.5 }}>(opcional)</span></label><input style={inp} value={nuevo.nombre} onChange={e => setNuevo({...nuevo, nombre: e.target.value})} placeholder="Ej: Tractor pequeño" /></div>
+          <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Descripción <span style={{ opacity: 0.5 }}>(opcional)</span></label><input style={inp} value={nuevo.descripcion} onChange={e => setNuevo({...nuevo, descripcion: e.target.value})} placeholder="Ej: Para labores de suelo" /></div>
+          <div><label style={lbl}>Emoji</label><input style={inp} value={nuevo.emoji} onChange={e => setNuevo({...nuevo, emoji: e.target.value})} placeholder="🎯" /></div>
+          <div><label style={lbl}>Fecha / objetivo <span style={{ opacity: 0.5 }}>(texto libre)</span></label><input style={inp} value={nuevo.fecha_texto} onChange={e => setNuevo({...nuevo, fecha_texto: e.target.value})} placeholder="Ej: Noviembre 2026" /></div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', gridColumn: '1/-1' }}>
             <input type="checkbox" id="comp-check" checked={nuevo.completado} onChange={e => setNuevo({...nuevo, completado: e.target.checked})} style={{ width: 18, height: 18, accentColor: '#27ae60', cursor: 'pointer' }} />
             <label htmlFor="comp-check" style={{ ...lbl, marginBottom: 0, cursor: 'pointer' }}>Ya completado</label>
-            {nuevo.completado && (
-              <input style={{...inp, width: 'auto', flex: 1}} type="date" value={nuevo.fecha_completado} onChange={e => setNuevo({...nuevo, fecha_completado: e.target.value})} />
-            )}
+            {nuevo.completado && <input style={{...inp, width: 'auto', flex: 1}} type="date" value={nuevo.fecha_completado} onChange={e => setNuevo({...nuevo, fecha_completado: e.target.value})} />}
           </div>
         </div>
-        <button type="submit" disabled={loading} style={{ background: '#c8a04a', color: '#0e120b', padding: '0.8rem 2rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>
-          {loading ? 'Guardando...' : '+ Añadir hito'}
-        </button>
+        <button type="submit" disabled={loading} style={{ background: '#c8a04a', color: '#0e120b', padding: '0.8rem 2rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>{loading ? 'Guardando...' : '+ Añadir hito'}</button>
       </form>
 
-      {/* Lista */}
-      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>
-        Hitos ({hitos.length}) — ↑↓ para reordenar · ✓ para completar · ✕ para eliminar
-      </div>
+      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>Hitos ({hitos.length}) — ↑↓ reordenar · ✓ completar · ✕ eliminar</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
         {hitos.map((h, idx) => (
           <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '1rem', background: h.completado ? 'rgba(107,140,58,0.08)' : '#1b2415', border: `1px solid ${h.completado ? 'rgba(107,140,58,0.4)' : 'rgba(200,160,74,0.15)'}` }}>
-            {/* Orden */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0 }}>
-              <button onClick={() => mover(h.id, 'up')} disabled={idx === 0} style={{ background: 'transparent', border: '1px solid rgba(200,160,74,0.2)', color: idx === 0 ? 'rgba(200,160,74,0.2)' : 'var(--gold)', width: 24, height: 22, cursor: idx === 0 ? 'default' : 'pointer', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>↑</button>
-              <button onClick={() => mover(h.id, 'down')} disabled={idx === hitos.length - 1} style={{ background: 'transparent', border: '1px solid rgba(200,160,74,0.2)', color: idx === hitos.length - 1 ? 'rgba(200,160,74,0.2)' : 'var(--gold)', width: 24, height: 22, cursor: idx === hitos.length - 1 ? 'default' : 'pointer', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>↓</button>
+              <button onClick={() => mover(h.id, 'up')} disabled={idx === 0} style={{ background: 'transparent', border: '1px solid rgba(200,160,74,0.2)', color: idx === 0 ? 'rgba(200,160,74,0.2)' : '#c8a04a', width: 24, height: 22, cursor: idx === 0 ? 'default' : 'pointer', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>↑</button>
+              <button onClick={() => mover(h.id, 'down')} disabled={idx === hitos.length - 1} style={{ background: 'transparent', border: '1px solid rgba(200,160,74,0.2)', color: idx === hitos.length - 1 ? 'rgba(200,160,74,0.2)' : '#c8a04a', width: 24, height: 22, cursor: idx === hitos.length - 1 ? 'default' : 'pointer', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>↓</button>
             </div>
-
             <span style={{ fontSize: '1.4rem', flexShrink: 0 }}>{h.emoji}</span>
-
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, color: h.completado ? '#8fbc50' : '#f0e6c8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {h.nombre || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>Sin nombre</span>}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#b8a87a', fontFamily: 'monospace' }}>
-                {h.completado
-                  ? `✓ Completado ${h.fecha_completado ?? ''}`
-                  : (h.fecha_texto || h.año_objetivo || '—')}
-              </div>
+              <div style={{ fontWeight: 600, color: h.completado ? '#8fbc50' : '#f0e6c8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.nombre || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>Sin nombre</span>}</div>
+              <div style={{ fontSize: '0.72rem', color: '#b8a87a', fontFamily: 'monospace' }}>{h.completado ? `✓ Completado ${h.fecha_completado ?? ''}` : (h.fecha_texto || h.año_objetivo || '—')}</div>
             </div>
-
-            {/* Toggle completado */}
-            <button onClick={() => toggle(h.id, h.completado)} title={h.completado ? 'Marcar pendiente' : 'Marcar completado'} style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, background: h.completado ? '#27ae60' : 'transparent', border: `2px solid ${h.completado ? '#27ae60' : 'rgba(200,160,74,0.4)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.8rem', cursor: 'pointer' }}>{h.completado ? '✓' : ''}</button>
-
-            {/* Eliminar */}
+            <button onClick={() => toggle(h.id, h.completado)} style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, background: h.completado ? '#27ae60' : 'transparent', border: `2px solid ${h.completado ? '#27ae60' : 'rgba(200,160,74,0.4)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.8rem', cursor: 'pointer' }}>{h.completado ? '✓' : ''}</button>
             <button onClick={() => eliminar(h.id)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.3rem 0.7rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', flexShrink: 0 }}>✕</button>
           </div>
         ))}
@@ -351,8 +397,8 @@ function VideoTab({ onMsg }: { onMsg: (m: string) => void }) {
   async function guardar(e: React.FormEvent) {
     e.preventDefault(); setLoading(true)
     const s = createClient()
-    const { error } = await s.from('configuracion').upsert({ clave: 'video_youtube', valor: url })
-    if (error) onMsg('❌ Error'); else onMsg('✓ Vídeo actualizado — visible en ~1 minuto')
+    await s.from('configuracion').upsert({ clave: 'video_youtube', valor: url })
+    onMsg('✓ Vídeo actualizado — visible en ~1 minuto')
     setLoading(false); setTimeout(() => onMsg(''), 4000)
   }
 
