@@ -161,7 +161,7 @@ section {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   padding: 8rem 3rem 4rem;
   overflow: hidden;
   max-width: 100% !important;
@@ -175,10 +175,12 @@ section {
   grid-template-columns: 1fr 1.4fr;
   gap: 4rem;
   align-items: center;
-  max-width: 1200px;
+  max-width: 1300px;
 }
+
 .hero-grid.no-video {
   grid-template-columns: 1fr;
+  max-width: 800px;
 }
 
 /* ─── FINANCE GRID ─── */
@@ -241,7 +243,8 @@ footer {
   .nav-links { gap: 1.5rem; }
   section { padding: 5rem 2rem; }
   #hero { padding: 7rem 2rem 3rem; }
-  .hero-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+  .hero-grid { grid-template-columns: 1fr; gap: 2.5rem; max-width: 700px; }
+  .hero-grid.no-video { max-width: 700px; }
   .finance-grid { grid-template-columns: 1fr; }
   .milestones-row { grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
   footer { padding: 2rem; }
@@ -275,8 +278,10 @@ footer {
   #hero {
     padding: 6rem 1.5rem 4rem;
     min-height: auto;
+    align-items: flex-start;
   }
-  .hero-grid { grid-template-columns: 1fr; gap: 2rem; }
+  .hero-grid { grid-template-columns: 1fr; gap: 2rem; max-width: 100%; }
+  .hero-grid.no-video { max-width: 100%; }
   .hero-stats-bottom { display: none !important; }
 
   section { padding: 4rem 1.5rem; }
