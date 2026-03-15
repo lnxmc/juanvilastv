@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 
-type Hito = { id: number; nombre: string; descripcion: string; emoji: string; año_objetivo: number; completado: boolean; fecha_completado?: string; orden: number }
+type Hito = { id: number; nombre: string; descripcion: string; emoji: string; año_objetivo: number; completado: boolean; fecha_completado?: string; fecha_texto?: string; orden: number }
 
 export default function RecorridoSection({ hitos }: { hitos: Hito[] }) {
   const [modalOpen, setModalOpen] = useState(false)
