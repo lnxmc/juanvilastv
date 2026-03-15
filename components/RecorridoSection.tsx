@@ -45,7 +45,7 @@ export default function RecorridoSection({ hitos }: { hitos: Hito[] }) {
                 </div>
                 <div style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.82rem)', fontStyle: 'italic', color: 'var(--cream-dim)', lineHeight: 1.4 }}>{h.descripcion}</div>
                 <div style={{ marginTop: '0.5rem', fontFamily: "'Space Mono', monospace", fontSize: '0.58rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: h.completado ? 'var(--olive-light)' : 'var(--cream-dim)', opacity: h.completado ? 1 : 0.5 }}>
-                  {h.completado ? '✓ Conseguido' : h.año_objetivo}
+                  {h.completado ? '✓ Conseguido' : (h.fecha_texto || h.año_objetivo || '—')}
                 </div>
               </div>
             ))}
@@ -76,7 +76,7 @@ export default function RecorridoSection({ hitos }: { hitos: Hito[] }) {
                   <span style={{ fontSize: '1.8rem', marginBottom: '0.6rem', display: 'block' }}>{h.emoji}</span>
                   <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '0.82rem', fontWeight: 700, color: 'var(--cream)', marginBottom: '0.3rem' }}>{h.nombre}</div>
                   <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.58rem', color: 'var(--cream-dim)', letterSpacing: '0.08em' }}>
-                    {h.completado ? '✓ Conseguido' : h.año_objetivo}
+                    {h.completado ? '✓ Conseguido' : (h.fecha_texto || h.año_objetivo || '—')}
                   </div>
                 </div>
               ))}
