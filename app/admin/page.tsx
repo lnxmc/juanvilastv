@@ -48,7 +48,7 @@ export default function AdminPage() {
     })
     if (error) setMsg('❌ Error: ' + error.message)
     else {
-      setMsg('✓ Gasto añadido correctamente')
+      setMsg('✓ Gasto añadido')
       setGasto({ nombre: '', importe: '', categoria: 'equipo', emoji: '📌', fecha: new Date().toISOString().split('T')[0], notas: '' })
     }
     setLoading(false)
@@ -73,24 +73,32 @@ export default function AdminPage() {
     })
     if (error) setMsg('❌ Error: ' + error.message)
     else {
-      setMsg('✓ Ingreso añadido correctamente')
+      setMsg('✓ Ingreso añadido')
       setIngreso({ nombre: '', importe: '', categoria: 'cosecha', emoji: '💰', fecha: new Date().toISOString().split('T')[0], kilos_aceituna: '', precio_kilo: '', notas: '' })
     }
     setLoading(false)
     setTimeout(() => setMsg(''), 3000)
   }
 
-  const inputStyle = {
+  const input = {
     background: '#1b2415', border: '1px solid rgba(200,160,74,0.3)',
     color: '#f0e6c8', padding: '0.7rem 1rem', width: '100%',
     fontFamily: 'inherit', fontSize: '0.95rem', outline: 'none'
   } as React.CSSProperties
 
-  const labelStyle = {
+  const label = {
     display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em',
     textTransform: 'uppercase' as const, color: '#b8a87a', marginBottom: '0.4rem',
     fontFamily: 'monospace'
   }
+
+  const tabBtn = (t: Tab) => ({
+    padding: '0.5rem 1.2rem', fontFamily: 'monospace', fontSize: '0.72rem',
+    letterSpacing: '0.1em', textTransform: 'uppercase' as const, cursor: 'pointer',
+    border: '1px solid rgba(200,160,74,0.3)',
+    background: tab === t ? '#c8a04a' : 'transparent',
+    color: tab === t ? '#0e120b' : '#b8a87a'
+  })
 
   return (
     <div style={{ minHeight: '100vh', background: '#0e120b', color: '#f0e6c8', padding: '2rem', fontFamily: 'Georgia, serif' }}>
@@ -103,13 +111,9 @@ export default function AdminPage() {
 
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
           {(['gastos', 'ingresos', 'hitos', 'video'] as Tab[]).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{
-              padding: '0.5rem 1.5rem', fontFamily: 'monospace', fontSize: '0.75rem',
-              letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer',
-              border: '1px solid rgba(200,160,74,0.3)',
-              background: tab === t ? '#c8a04a' : 'transparent',
-              color: tab === t ? '#0e120b' : '#b8a87a'
-            }}>{t === 'video' ? '▶ Vídeo' : t}</button>
+            <button key={t} onClick={() => setTab(t)} style={tabBtn(t)}>
+              {t === 'video' ? '▶ Vídeo' : t}
+            </button>
           ))}
         </div>
 
@@ -123,26 +127,27 @@ export default function AdminPage() {
           }}>{msg}</div>
         )}
 
+        {/* ── GASTOS ── */}
         {tab === 'gastos' && (
           <div>
             <form onSubmit={saveGasto} style={{ marginBottom: '3rem' }}>
               <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1.2rem' }}>+ Añadir gasto</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem', marginBottom: '1.2rem' }}>
                 <div style={{ gridColumn: '1/-1' }}>
-                  <label style={labelStyle}>Nombre *</label>
-                  <input style={inputStyle} required value={gasto.nombre} onChange={e => setGasto({...gasto, nombre: e.target.value})} placeholder="Ej: Gasolina semana 12" />
+                  <label style={label}>Nombre *</label>
+                  <input style={input} required value={gasto.nombre} onChange={e => setGasto({...gasto, nombre: e.target.value})} placeholder="Ej: Gasolina semana 12" />
                 </div>
                 <div>
-                  <label style={labelStyle}>Importe (€) *</label>
-                  <input style={inputStyle} type="number" step="0.01" min="0" required value={gasto.importe} onChange={e => setGasto({...gasto, importe: e.target.value})} placeholder="0.00" />
+                  <label style={label}>Importe (€) *</label>
+                  <input style={input} type="number" step="0.01" min="0" required value={gasto.importe} onChange={e => setGasto({...gasto, importe: e.target.value})} placeholder="0.00" />
                 </div>
                 <div>
-                  <label style={labelStyle}>Fecha *</label>
-                  <input style={inputStyle} type="date" required value={gasto.fecha} onChange={e => setGasto({...gasto, fecha: e.target.value})} />
+                  <label style={label}>Fecha *</label>
+                  <input style={input} type="date" required value={gasto.fecha} onChange={e => setGasto({...gasto, fecha: e.target.value})} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Categoría</label>
-                  <select style={inputStyle} value={gasto.categoria} onChange={e => setGasto({...gasto, categoria: e.target.value})}>
+                  <label style={label}>Categoría</label>
+                  <select style={input} value={gasto.categoria} onChange={e => setGasto({...gasto, categoria: e.target.value})}>
                     <option value="equipo">Equipo</option>
                     <option value="combustible">Combustible</option>
                     <option value="arrendamiento">Arrendamiento</option>
@@ -153,12 +158,12 @@ export default function AdminPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>Emoji</label>
-                  <input style={inputStyle} value={gasto.emoji} onChange={e => setGasto({...gasto, emoji: e.target.value})} />
+                  <label style={label}>Emoji</label>
+                  <input style={input} value={gasto.emoji} onChange={e => setGasto({...gasto, emoji: e.target.value})} />
                 </div>
                 <div style={{ gridColumn: '1/-1' }}>
-                  <label style={labelStyle}>Notas</label>
-                  <textarea style={{...inputStyle, height: 80, resize: 'vertical'}} value={gasto.notas} onChange={e => setGasto({...gasto, notas: e.target.value})} />
+                  <label style={label}>Notas</label>
+                  <textarea style={{...input, height: 80, resize: 'vertical'}} value={gasto.notas} onChange={e => setGasto({...gasto, notas: e.target.value})} />
                 </div>
               </div>
               <button type="submit" disabled={loading} style={{ background: '#c8a04a', color: '#0e120b', padding: '0.9rem 2.5rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>
@@ -169,34 +174,35 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ── INGRESOS ── */}
         {tab === 'ingresos' && (
           <div>
             <form onSubmit={saveIngreso} style={{ marginBottom: '3rem' }}>
               <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#27ae60', marginBottom: '1.2rem' }}>+ Añadir ingreso</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem', marginBottom: '1.2rem' }}>
                 <div style={{ gridColumn: '1/-1' }}>
-                  <label style={labelStyle}>Nombre *</label>
-                  <input style={inputStyle} required value={ingreso.nombre} onChange={e => setIngreso({...ingreso, nombre: e.target.value})} placeholder="Ej: Venta aceituna cooperativa Úbeda" />
+                  <label style={label}>Nombre *</label>
+                  <input style={input} required value={ingreso.nombre} onChange={e => setIngreso({...ingreso, nombre: e.target.value})} placeholder="Ej: Venta aceituna cooperativa Úbeda" />
                 </div>
                 <div>
-                  <label style={labelStyle}>Importe total (€) *</label>
-                  <input style={inputStyle} type="number" step="0.01" min="0" required value={ingreso.importe} onChange={e => setIngreso({...ingreso, importe: e.target.value})} />
+                  <label style={label}>Importe total (€) *</label>
+                  <input style={input} type="number" step="0.01" min="0" required value={ingreso.importe} onChange={e => setIngreso({...ingreso, importe: e.target.value})} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Fecha *</label>
-                  <input style={inputStyle} type="date" required value={ingreso.fecha} onChange={e => setIngreso({...ingreso, fecha: e.target.value})} />
+                  <label style={label}>Fecha *</label>
+                  <input style={input} type="date" required value={ingreso.fecha} onChange={e => setIngreso({...ingreso, fecha: e.target.value})} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Kilos de aceituna</label>
-                  <input style={inputStyle} type="number" step="0.1" value={ingreso.kilos_aceituna} onChange={e => setIngreso({...ingreso, kilos_aceituna: e.target.value})} placeholder="Ej: 12500" />
+                  <label style={label}>Kilos de aceituna</label>
+                  <input style={input} type="number" step="0.1" value={ingreso.kilos_aceituna} onChange={e => setIngreso({...ingreso, kilos_aceituna: e.target.value})} placeholder="Ej: 12500" />
                 </div>
                 <div>
-                  <label style={labelStyle}>Precio €/kg</label>
-                  <input style={inputStyle} type="number" step="0.001" value={ingreso.precio_kilo} onChange={e => setIngreso({...ingreso, precio_kilo: e.target.value})} placeholder="Ej: 0.650" />
+                  <label style={label}>Precio €/kg</label>
+                  <input style={input} type="number" step="0.001" value={ingreso.precio_kilo} onChange={e => setIngreso({...ingreso, precio_kilo: e.target.value})} placeholder="Ej: 0.650" />
                 </div>
                 <div style={{ gridColumn: '1/-1' }}>
-                  <label style={labelStyle}>Notas</label>
-                  <textarea style={{...inputStyle, height: 80, resize: 'vertical'}} value={ingreso.notas} onChange={e => setIngreso({...ingreso, notas: e.target.value})} />
+                  <label style={label}>Notas</label>
+                  <textarea style={{...input, height: 80, resize: 'vertical'}} value={ingreso.notas} onChange={e => setIngreso({...ingreso, notas: e.target.value})} />
                 </div>
               </div>
               <button type="submit" disabled={loading} style={{ background: '#27ae60', color: 'white', padding: '0.9rem 2.5rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>
@@ -207,7 +213,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {tab === 'hitos' && <HitosTab />}
+        {tab === 'hitos' && <HitosTab onMsg={setMsg} />}
         {tab === 'video' && <VideoTab onMsg={setMsg} />}
 
       </div>
@@ -215,18 +221,19 @@ export default function AdminPage() {
   )
 }
 
+/* ── GASTOS LISTA ── */
 function GastosLista({ onMsg }: { onMsg: (m: string) => void }) {
   const [gastos, setGastos] = useState<any[]>([])
   useEffect(() => { cargar() }, [])
   async function cargar() {
-    const supabase = createClient()
-    const { data } = await supabase.from('gastos').select('*').order('fecha', { ascending: false })
+    const s = createClient()
+    const { data } = await s.from('gastos').select('*').order('fecha', { ascending: false })
     setGastos(data ?? [])
   }
   async function eliminar(id: number) {
     if (!confirm('¿Eliminar este gasto?')) return
-    const supabase = createClient()
-    const { error } = await supabase.from('gastos').delete().eq('id', id)
+    const s = createClient()
+    const { error } = await s.from('gastos').delete().eq('id', id)
     if (error) onMsg('❌ Error al eliminar')
     else { onMsg('✓ Gasto eliminado'); cargar() }
     setTimeout(() => onMsg(''), 3000)
@@ -238,12 +245,12 @@ function GastosLista({ onMsg }: { onMsg: (m: string) => void }) {
         {gastos.map(g => (
           <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.8rem 1rem', background: '#1b2415', border: '1px solid rgba(200,160,74,0.15)' }}>
             <span style={{ fontSize: '1.3rem' }}>{g.emoji}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f0e6c8' }}>{g.nombre}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f0e6c8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.nombre}</div>
               <div style={{ fontSize: '0.7rem', color: '#b8a87a', fontFamily: 'monospace' }}>{g.fecha} · {g.categoria}</div>
             </div>
-            <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#e74c3c', fontWeight: 700 }}>−{Number(g.importe).toLocaleString('es-ES')} €</div>
-            <button onClick={() => eliminar(g.id)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.3rem 0.8rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem' }}>✕ Borrar</button>
+            <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#e74c3c', fontWeight: 700, whiteSpace: 'nowrap' }}>−{Number(g.importe).toLocaleString('es-ES')} €</div>
+            <button onClick={() => eliminar(g.id)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.3rem 0.8rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', flexShrink: 0 }}>✕</button>
           </div>
         ))}
         {gastos.length === 0 && <div style={{ color: '#b8a87a', fontStyle: 'italic', fontSize: '0.9rem' }}>Sin gastos registrados</div>}
@@ -252,18 +259,19 @@ function GastosLista({ onMsg }: { onMsg: (m: string) => void }) {
   )
 }
 
+/* ── INGRESOS LISTA ── */
 function IngresosLista({ onMsg }: { onMsg: (m: string) => void }) {
   const [ingresos, setIngresos] = useState<any[]>([])
   useEffect(() => { cargar() }, [])
   async function cargar() {
-    const supabase = createClient()
-    const { data } = await supabase.from('ingresos').select('*').order('fecha', { ascending: false })
+    const s = createClient()
+    const { data } = await s.from('ingresos').select('*').order('fecha', { ascending: false })
     setIngresos(data ?? [])
   }
   async function eliminar(id: number) {
     if (!confirm('¿Eliminar este ingreso?')) return
-    const supabase = createClient()
-    const { error } = await supabase.from('ingresos').delete().eq('id', id)
+    const s = createClient()
+    const { error } = await s.from('ingresos').delete().eq('id', id)
     if (error) onMsg('❌ Error al eliminar')
     else { onMsg('✓ Ingreso eliminado'); cargar() }
     setTimeout(() => onMsg(''), 3000)
@@ -275,12 +283,12 @@ function IngresosLista({ onMsg }: { onMsg: (m: string) => void }) {
         {ingresos.map(i => (
           <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.8rem 1rem', background: '#1b2415', border: '1px solid rgba(200,160,74,0.15)' }}>
             <span style={{ fontSize: '1.3rem' }}>{i.emoji}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f0e6c8' }}>{i.nombre}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f0e6c8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.nombre}</div>
               <div style={{ fontSize: '0.7rem', color: '#b8a87a', fontFamily: 'monospace' }}>{i.fecha} · {i.categoria}</div>
             </div>
-            <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#2ecc71', fontWeight: 700 }}>+{Number(i.importe).toLocaleString('es-ES')} €</div>
-            <button onClick={() => eliminar(i.id)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.3rem 0.8rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem' }}>✕ Borrar</button>
+            <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#2ecc71', fontWeight: 700, whiteSpace: 'nowrap' }}>+{Number(i.importe).toLocaleString('es-ES')} €</div>
+            <button onClick={() => eliminar(i.id)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.3rem 0.8rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', flexShrink: 0 }}>✕</button>
           </div>
         ))}
         {ingresos.length === 0 && <div style={{ color: '#b8a87a', fontStyle: 'italic', fontSize: '0.9rem' }}>Sin ingresos registrados</div>}
@@ -289,57 +297,167 @@ function IngresosLista({ onMsg }: { onMsg: (m: string) => void }) {
   )
 }
 
-function HitosTab() {
+/* ── HITOS TAB ── */
+function HitosTab({ onMsg }: { onMsg: (m: string) => void }) {
   const [hitos, setHitos] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const [nuevo, setNuevo] = useState({
+    nombre: '', descripcion: '', emoji: '🎯',
+    año_objetivo: new Date().getFullYear() + 1,
+    completado: false, fecha_completado: ''
+  })
+
   useEffect(() => { cargar() }, [])
+
   async function cargar() {
-    const supabase = createClient()
-    const { data } = await supabase.from('hitos').select('*').order('orden')
+    const s = createClient()
+    const { data } = await s.from('hitos').select('*').order('orden')
     setHitos(data ?? [])
   }
+
+  async function addHito(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    const s = createClient()
+    const maxOrden = hitos.length > 0 ? Math.max(...hitos.map(h => h.orden)) + 1 : 1
+    const { error } = await s.from('hitos').insert({
+      nombre: nuevo.nombre || null,
+      descripcion: nuevo.descripcion || null,
+      emoji: nuevo.emoji || '🎯',
+      año_objetivo: nuevo.año_objetivo || null,
+      completado: nuevo.completado,
+      fecha_completado: nuevo.completado && nuevo.fecha_completado ? nuevo.fecha_completado : null,
+      orden: maxOrden
+    })
+    if (error) onMsg('❌ Error: ' + error.message)
+    else {
+      onMsg('✓ Hito añadido')
+      setNuevo({ nombre: '', descripcion: '', emoji: '🎯', año_objetivo: new Date().getFullYear() + 1, completado: false, fecha_completado: '' })
+      cargar()
+    }
+    setLoading(false)
+    setTimeout(() => onMsg(''), 3000)
+  }
+
   async function toggle(id: number, completado: boolean) {
-    const supabase = createClient()
-    await supabase.from('hitos').update({
+    const s = createClient()
+    await s.from('hitos').update({
       completado: !completado,
       fecha_completado: !completado ? new Date().toISOString().split('T')[0] : null
     }).eq('id', id)
     cargar()
   }
+
+  async function eliminar(id: number) {
+    if (!confirm('¿Eliminar este hito?')) return
+    const s = createClient()
+    const { error } = await s.from('hitos').delete().eq('id', id)
+    if (error) onMsg('❌ Error al eliminar')
+    else { onMsg('✓ Hito eliminado'); cargar() }
+    setTimeout(() => onMsg(''), 3000)
+  }
+
+  const inp = {
+    background: '#1b2415', border: '1px solid rgba(200,160,74,0.3)',
+    color: '#f0e6c8', padding: '0.7rem 1rem', width: '100%',
+    fontFamily: 'inherit', fontSize: '0.95rem', outline: 'none'
+  } as React.CSSProperties
+
+  const lbl = {
+    display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em',
+    textTransform: 'uppercase' as const, color: '#b8a87a', marginBottom: '0.4rem',
+    fontFamily: 'monospace'
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-      {hitos.map(h => (
-        <div key={h.id} onClick={() => toggle(h.id, h.completado)} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.2rem', background: h.completado ? 'rgba(107,140,58,0.08)' : '#1b2415', border: `1px solid ${h.completado ? 'rgba(107,140,58,0.4)' : 'rgba(200,160,74,0.2)'}`, cursor: 'pointer' }}>
-          <span style={{ fontSize: '1.5rem' }}>{h.emoji}</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, color: h.completado ? '#8fbc50' : '#f0e6c8' }}>{h.nombre}</div>
-            <div style={{ fontSize: '0.75rem', color: '#b8a87a', fontFamily: 'monospace' }}>{h.completado ? `✓ Completado ${h.fecha_completado}` : `Objetivo: ${h.año_objetivo}`}</div>
+    <div>
+      {/* Formulario añadir hito */}
+      <form onSubmit={addHito} style={{ marginBottom: '3rem', padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(200,160,74,0.2)' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1.2rem' }}>+ Añadir hito</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          <div style={{ gridColumn: '1/-1' }}>
+            <label style={lbl}>Nombre <span style={{ opacity: 0.5 }}>(opcional)</span></label>
+            <input style={inp} value={nuevo.nombre} onChange={e => setNuevo({...nuevo, nombre: e.target.value})} placeholder="Ej: Tractor pequeño" />
           </div>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', background: h.completado ? '#27ae60' : 'transparent', border: `2px solid ${h.completado ? '#27ae60' : 'rgba(200,160,74,0.3)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.8rem' }}>{h.completado ? '✓' : ''}</div>
+          <div style={{ gridColumn: '1/-1' }}>
+            <label style={lbl}>Descripción <span style={{ opacity: 0.5 }}>(opcional)</span></label>
+            <input style={inp} value={nuevo.descripcion} onChange={e => setNuevo({...nuevo, descripcion: e.target.value})} placeholder="Ej: Para labores de suelo" />
+          </div>
+          <div>
+            <label style={lbl}>Emoji <span style={{ opacity: 0.5 }}>(opcional)</span></label>
+            <input style={inp} value={nuevo.emoji} onChange={e => setNuevo({...nuevo, emoji: e.target.value})} placeholder="🎯" />
+          </div>
+          <div>
+            <label style={lbl}>Año objetivo <span style={{ opacity: 0.5 }}>(opcional)</span></label>
+            <input style={inp} type="number" min="2024" max="2040" value={nuevo.año_objetivo} onChange={e => setNuevo({...nuevo, año_objetivo: parseInt(e.target.value)})} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', gridColumn: '1/-1' }}>
+            <input type="checkbox" id="completado-check" checked={nuevo.completado} onChange={e => setNuevo({...nuevo, completado: e.target.checked})}
+              style={{ width: 18, height: 18, accentColor: '#27ae60', cursor: 'pointer' }} />
+            <label htmlFor="completado-check" style={{ ...lbl, marginBottom: 0, cursor: 'pointer' }}>Ya completado</label>
+            {nuevo.completado && (
+              <input style={{...inp, width: 'auto', flex: 1}} type="date" value={nuevo.fecha_completado}
+                onChange={e => setNuevo({...nuevo, fecha_completado: e.target.value})} />
+            )}
+          </div>
         </div>
-      ))}
-      <p style={{ marginTop: '1rem', fontSize: '0.8rem', fontStyle: 'italic', color: '#b8a87a', opacity: 0.7 }}>Haz clic en un hito para marcarlo como completado / pendiente</p>
+        <button type="submit" disabled={loading} style={{ background: '#c8a04a', color: '#0e120b', padding: '0.8rem 2rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>
+          {loading ? 'Guardando...' : '+ Añadir hito'}
+        </button>
+      </form>
+
+      {/* Lista de hitos */}
+      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>
+        Hitos ({hitos.length}) — clic en ✓ para marcar completado
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+        {hitos.map(h => (
+          <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: h.completado ? 'rgba(107,140,58,0.08)' : '#1b2415', border: `1px solid ${h.completado ? 'rgba(107,140,58,0.4)' : 'rgba(200,160,74,0.15)'}` }}>
+            <span style={{ fontSize: '1.5rem', flexShrink: 0 }}>{h.emoji}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, color: h.completado ? '#8fbc50' : '#f0e6c8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {h.nombre || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>Sin nombre</span>}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#b8a87a', fontFamily: 'monospace' }}>
+                {h.completado ? `✓ Completado ${h.fecha_completado ?? ''}` : `Objetivo: ${h.año_objetivo ?? '—'}`}
+              </div>
+            </div>
+            {/* Toggle completado */}
+            <button onClick={() => toggle(h.id, h.completado)} title={h.completado ? 'Marcar pendiente' : 'Marcar completado'} style={{
+              width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+              background: h.completado ? '#27ae60' : 'transparent',
+              border: `2px solid ${h.completado ? '#27ae60' : 'rgba(200,160,74,0.4)'}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'white', fontSize: '0.8rem', cursor: 'pointer'
+            }}>{h.completado ? '✓' : ''}</button>
+            {/* Eliminar */}
+            <button onClick={() => eliminar(h.id)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.3rem 0.7rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', flexShrink: 0 }}>✕</button>
+          </div>
+        ))}
+        {hitos.length === 0 && <div style={{ color: '#b8a87a', fontStyle: 'italic', fontSize: '0.9rem' }}>Sin hitos registrados</div>}
+      </div>
     </div>
   )
 }
 
+/* ── VIDEO TAB ── */
 function VideoTab({ onMsg }: { onMsg: (m: string) => void }) {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.from('configuracion').select('valor').eq('clave', 'video_youtube').single()
+    const s = createClient()
+    s.from('configuracion').select('valor').eq('clave', 'video_youtube').single()
       .then(({ data }) => { if (data?.valor) setUrl(data.valor) })
   }, [])
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    const supabase = createClient()
-    const { error } = await supabase.from('configuracion')
-      .upsert({ clave: 'video_youtube', valor: url })
+    const s = createClient()
+    const { error } = await s.from('configuracion').upsert({ clave: 'video_youtube', valor: url })
     if (error) onMsg('❌ Error al guardar')
-    else onMsg('✓ Vídeo actualizado — se verá en la web en unos minutos')
+    else onMsg('✓ Vídeo actualizado — visible en la web en ~1 minuto')
     setLoading(false)
     setTimeout(() => onMsg(''), 4000)
   }
@@ -347,31 +465,29 @@ function VideoTab({ onMsg }: { onMsg: (m: string) => void }) {
   async function quitar() {
     if (!confirm('¿Quitar el vídeo de la página principal?')) return
     setLoading(true)
-    const supabase = createClient()
-    await supabase.from('configuracion').upsert({ clave: 'video_youtube', valor: '' })
+    const s = createClient()
+    await s.from('configuracion').upsert({ clave: 'video_youtube', valor: '' })
     setUrl('')
-    onMsg('✓ Vídeo eliminado de la página principal')
+    onMsg('✓ Vídeo eliminado')
     setLoading(false)
     setTimeout(() => onMsg(''), 3000)
   }
+
+  const videoId = url.match(/(?:v=|youtu\.be\/)([^&?]+)/)?.[1]
 
   return (
     <div>
       <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1.5rem' }}>▶ Vídeo principal</div>
       <p style={{ color: '#b8a87a', fontStyle: 'italic', fontSize: '0.9rem', marginBottom: '2rem', lineHeight: 1.7 }}>
-        El vídeo que pongas aquí aparecerá en la parte superior de la página, junto al título. Pega la URL de cualquier vídeo de YouTube. Si lo dejas vacío no aparece nada.
+        El vídeo que pongas aquí aparecerá en la parte superior de la página junto al título. Pega la URL de YouTube. Si lo dejas vacío no aparece nada.
       </p>
       <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div>
-          <label style={{ display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '0.4rem', fontFamily: 'monospace' }}>
-            URL del vídeo de YouTube
-          </label>
+          <label style={{ display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '0.4rem', fontFamily: 'monospace' }}>URL de YouTube</label>
           <input
             style={{ background: '#1b2415', border: '1px solid rgba(200,160,74,0.3)', color: '#f0e6c8', padding: '0.7rem 1rem', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', outline: 'none' }}
-            value={url}
-            onChange={e => setUrl(e.target.value)}
-            placeholder="https://www.youtube.com/watch?v=..."
-          />
+            value={url} onChange={e => setUrl(e.target.value)}
+            placeholder="https://www.youtube.com/watch?v=..." />
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button type="submit" disabled={loading} style={{ background: '#c8a04a', color: '#0e120b', padding: '0.9rem 2rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>
@@ -384,16 +500,11 @@ function VideoTab({ onMsg }: { onMsg: (m: string) => void }) {
           )}
         </div>
       </form>
-
-      {url && (
+      {videoId && (
         <div style={{ marginTop: '2rem' }}>
           <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '0.8rem' }}>Vista previa</div>
           <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', border: '1px solid rgba(200,160,74,0.2)' }}>
-            <iframe
-              src={`https://www.youtube.com/embed/${url.match(/(?:v=|youtu\.be\/)([^&?]+)/)?.[1]}?rel=0`}
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-              allowFullScreen
-            />
+            <iframe src={`https://www.youtube.com/embed/${videoId}?rel=0`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} allowFullScreen />
           </div>
         </div>
       )}
