@@ -36,7 +36,7 @@ export default function DonacionesSection({ bizumNumero, paypalUsuario, contacto
         </h2>
 
         <p style={{ fontSize: 'clamp(0.95rem, 2vw, 1.1rem)', fontStyle: 'italic', color: 'var(--cream-dim)', maxWidth: 520, margin: '0 auto 3rem', lineHeight: 1.8, padding: '0 1rem' }}>
-          Cada euro va directo a una máquina, un litro de gasolina o un flete. Sin intermediarios.
+          Cada euro que aportas va directo al olivar.
         </p>
 
         {/* Amounts */}
