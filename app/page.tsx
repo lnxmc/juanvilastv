@@ -14,14 +14,18 @@ export default async function Home() {
   const { data: temporadaActiva } = await supabase
     .from('temporadas').select('*').eq('activa', true).single()
 
-  const { data: gastos } = await supabase
-    .from('gastos').select('*').eq('temporada_id', temporadaActiva?.id).order('fecha', { ascending: false })
-
-  const { data: ingresos } = await supabase
-    .from('ingresos').select('*').eq('temporada_id', temporadaActiva?.id).order('fecha', { ascending: false })
-
   const { data: temporadas } = await supabase
     .from('temporadas').select('*').order('año')
+
+  const { data: gastos } = await supabase
+    .from('gastos').select('*')
+    .eq('temporada_id', temporadaActiva?.id)
+    .order('fecha', { ascending: false })
+
+  const { data: ingresos } = await supabase
+    .from('ingresos').select('*')
+    .eq('temporada_id', temporadaActiva?.id)
+    .order('fecha', { ascending: false })
 
   const { data: hitos } = await supabase
     .from('hitos').select('*').order('orden')
