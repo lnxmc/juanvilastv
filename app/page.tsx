@@ -30,10 +30,16 @@ export default async function Home() {
   const { data: hitos } = await supabase
     .from('hitos').select('*').order('orden')
 
-  const { data: config } = await supabase
-    .from('configuracion').select('valor').eq('clave', 'video_youtube').single()
+  const { data: configs } = await supabase
+    .from('configuracion').select('clave, valor')
 
-  const videoUrl = config?.valor ?? ''
+  const cfg = (clave: string) => configs?.find(c => c.clave === clave)?.valor ?? ''
+
+  const videoUrl = cfg('video_youtube')
+  const bizumNumero = cfg('bizum_numero')
+  const paypalUsuario = cfg('paypal_usuario')
+  const contactoEmail = cfg('contacto_email')
+
   const totalGastosInicial = gastos?.reduce((acc, g) => acc + Number(g.importe), 0) ?? 0
   const totalIngresosInicial = ingresos?.reduce((acc, i) => acc + Number(i.importe), 0) ?? 0
 
@@ -65,7 +71,11 @@ export default async function Home() {
           totalIngresosInicial={totalIngresosInicial}
         />
         <RecorridoSection hitos={hitos ?? []} />
-        <DonacionesSection />
+        <DonacionesSection
+          bizumNumero={bizumNumero}
+          paypalUsuario={paypalUsuario}
+          contactoEmail={contactoEmail}
+        />
       </main>
 
       <footer>

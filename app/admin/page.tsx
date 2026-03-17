@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 
-type Tab = 'gastos' | 'ingresos' | 'hitos' | 'temporadas' | 'video'
+type Tab = 'gastos' | 'ingresos' | 'hitos' | 'temporadas' | 'donaciones' | 'video'
 
 export default function AdminPage() {
   const router = useRouter()
@@ -62,7 +62,7 @@ export default function AdminPage() {
 
   const inp = { background: '#1b2415', border: '1px solid rgba(200,160,74,0.3)', color: '#f0e6c8', padding: '0.7rem 1rem', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', outline: 'none' } as React.CSSProperties
   const lbl = { display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: '#b8a87a', marginBottom: '0.4rem', fontFamily: 'monospace' }
-  const tabBtn = (t: Tab) => ({ padding: '0.5rem 1.2rem', fontFamily: 'monospace', fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase' as const, cursor: 'pointer', border: '1px solid rgba(200,160,74,0.3)', background: tab === t ? '#c8a04a' : 'transparent', color: tab === t ? '#0e120b' : '#b8a87a' })
+  const tabBtn = (t: Tab) => ({ padding: '0.5rem 1rem', fontFamily: 'monospace', fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase' as const, cursor: 'pointer', border: '1px solid rgba(200,160,74,0.3)', background: tab === t ? '#c8a04a' : 'transparent', color: tab === t ? '#0e120b' : '#b8a87a' })
 
   return (
     <div style={{ minHeight: '100vh', background: '#0e120b', color: '#f0e6c8', padding: '2rem', fontFamily: 'Georgia, serif' }}>
@@ -72,10 +72,10 @@ export default function AdminPage() {
           <p style={{ color: '#b8a87a', fontStyle: 'italic' }}>juanvilas.com — gestión de temporada</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
-          {(['gastos', 'ingresos', 'hitos', 'temporadas', 'video'] as Tab[]).map(t => (
+        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
+          {(['gastos', 'ingresos', 'hitos', 'temporadas', 'donaciones', 'video'] as Tab[]).map(t => (
             <button key={t} onClick={() => setTab(t)} style={tabBtn(t)}>
-              {t === 'video' ? '▶ Vídeo' : t === 'temporadas' ? '📅 Temporadas' : t}
+              {t === 'video' ? '▶ Vídeo' : t === 'temporadas' ? '📅 Años' : t === 'donaciones' ? '💰 Donaciones' : t}
             </button>
           ))}
         </div>
@@ -90,17 +90,12 @@ export default function AdminPage() {
             <form onSubmit={saveGasto} style={{ marginBottom: '3rem' }}>
               <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1.2rem' }}>+ Añadir gasto</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem', marginBottom: '1.2rem' }}>
-
-                {/* Selector de temporada */}
                 <div style={{ gridColumn: '1/-1' }}>
                   <label style={lbl}>Temporada *</label>
                   <select style={inp} value={temporadaId ?? ''} onChange={e => setTemporadaId(parseInt(e.target.value))}>
-                    {temporadas.map(t => (
-                      <option key={t.id} value={t.id}>{t.año}{t.activa ? ' (activa)' : ''}</option>
-                    ))}
+                    {temporadas.map(t => <option key={t.id} value={t.id}>{t.año}{t.activa ? ' (activa)' : ''}</option>)}
                   </select>
                 </div>
-
                 <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Nombre *</label><input style={inp} required value={gasto.nombre} onChange={e => setGasto({...gasto, nombre: e.target.value})} placeholder="Ej: Gasolina semana 12" /></div>
                 <div><label style={lbl}>Importe (€) *</label><input style={inp} type="number" step="0.01" min="0" required value={gasto.importe} onChange={e => setGasto({...gasto, importe: e.target.value})} placeholder="0.00" /></div>
                 <div><label style={lbl}>Fecha *</label><input style={inp} type="date" required value={gasto.fecha} onChange={e => setGasto({...gasto, fecha: e.target.value})} /></div>
@@ -124,17 +119,12 @@ export default function AdminPage() {
             <form onSubmit={saveIngreso} style={{ marginBottom: '3rem' }}>
               <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#27ae60', marginBottom: '1.2rem' }}>+ Añadir ingreso</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem', marginBottom: '1.2rem' }}>
-
-                {/* Selector de temporada */}
                 <div style={{ gridColumn: '1/-1' }}>
                   <label style={lbl}>Temporada *</label>
                   <select style={inp} value={temporadaId ?? ''} onChange={e => setTemporadaId(parseInt(e.target.value))}>
-                    {temporadas.map(t => (
-                      <option key={t.id} value={t.id}>{t.año}{t.activa ? ' (activa)' : ''}</option>
-                    ))}
+                    {temporadas.map(t => <option key={t.id} value={t.id}>{t.año}{t.activa ? ' (activa)' : ''}</option>)}
                   </select>
                 </div>
-
                 <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Nombre *</label><input style={inp} required value={ingreso.nombre} onChange={e => setIngreso({...ingreso, nombre: e.target.value})} placeholder="Ej: Venta aceituna cooperativa Úbeda" /></div>
                 <div><label style={lbl}>Importe total (€) *</label><input style={inp} type="number" step="0.01" min="0" required value={ingreso.importe} onChange={e => setIngreso({...ingreso, importe: e.target.value})} /></div>
                 <div><label style={lbl}>Fecha *</label><input style={inp} type="date" required value={ingreso.fecha} onChange={e => setIngreso({...ingreso, fecha: e.target.value})} /></div>
@@ -150,6 +140,7 @@ export default function AdminPage() {
 
         {tab === 'hitos' && <HitosTab onMsg={setMsg} />}
         {tab === 'temporadas' && <TemporadasTab onMsg={setMsg} onTemporadasChange={setTemporadas} />}
+        {tab === 'donaciones' && <DonacionesTab onMsg={setMsg} />}
         {tab === 'video' && <VideoTab onMsg={setMsg} />}
       </div>
     </div>
@@ -161,13 +152,12 @@ function GastosLista({ onMsg }: { onMsg: (m: string) => void }) {
   const [temporadas, setTemporadas] = useState<any[]>([])
   useEffect(() => {
     cargar()
-    const s = createClient()
-    s.from('temporadas').select('*').order('año').then(({ data }) => setTemporadas(data ?? []))
+    createClient().from('temporadas').select('*').order('año').then(({ data }) => setTemporadas(data ?? []))
   }, [])
-  async function cargar() { const s = createClient(); const { data } = await s.from('gastos').select('*').order('fecha', { ascending: false }); setGastos(data ?? []) }
+  async function cargar() { const { data } = await createClient().from('gastos').select('*').order('fecha', { ascending: false }); setGastos(data ?? []) }
   async function eliminar(id: number) {
     if (!confirm('¿Eliminar este gasto?')) return
-    const s = createClient(); await s.from('gastos').delete().eq('id', id)
+    await createClient().from('gastos').delete().eq('id', id)
     onMsg('✓ Gasto eliminado'); cargar(); setTimeout(() => onMsg(''), 3000)
   }
   const getAño = (tid: number) => temporadas.find(t => t.id === tid)?.año ?? '—'
@@ -197,13 +187,12 @@ function IngresosLista({ onMsg }: { onMsg: (m: string) => void }) {
   const [temporadas, setTemporadas] = useState<any[]>([])
   useEffect(() => {
     cargar()
-    const s = createClient()
-    s.from('temporadas').select('*').order('año').then(({ data }) => setTemporadas(data ?? []))
+    createClient().from('temporadas').select('*').order('año').then(({ data }) => setTemporadas(data ?? []))
   }, [])
-  async function cargar() { const s = createClient(); const { data } = await s.from('ingresos').select('*').order('fecha', { ascending: false }); setIngresos(data ?? []) }
+  async function cargar() { const { data } = await createClient().from('ingresos').select('*').order('fecha', { ascending: false }); setIngresos(data ?? []) }
   async function eliminar(id: number) {
     if (!confirm('¿Eliminar este ingreso?')) return
-    const s = createClient(); await s.from('ingresos').delete().eq('id', id)
+    await createClient().from('ingresos').delete().eq('id', id)
     onMsg('✓ Ingreso eliminado'); cargar(); setTimeout(() => onMsg(''), 3000)
   }
   const getAño = (tid: number) => temporadas.find(t => t.id === tid)?.año ?? '—'
@@ -228,6 +217,75 @@ function IngresosLista({ onMsg }: { onMsg: (m: string) => void }) {
   )
 }
 
+function DonacionesTab({ onMsg }: { onMsg: (m: string) => void }) {
+  const [bizum, setBizum] = useState('')
+  const [paypal, setPaypal] = useState('')
+  const [email, setEmail] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    createClient().from('configuracion').select('clave, valor').in('clave', ['bizum_numero', 'paypal_usuario', 'contacto_email'])
+      .then(({ data }) => {
+        data?.forEach(c => {
+          if (c.clave === 'bizum_numero') setBizum(c.valor ?? '')
+          if (c.clave === 'paypal_usuario') setPaypal(c.valor ?? '')
+          if (c.clave === 'contacto_email') setEmail(c.valor ?? '')
+        })
+      })
+  }, [])
+
+  async function guardar(e: React.FormEvent) {
+    e.preventDefault(); setLoading(true)
+    const s = createClient()
+    await Promise.all([
+      s.from('configuracion').upsert({ clave: 'bizum_numero', valor: bizum }),
+      s.from('configuracion').upsert({ clave: 'paypal_usuario', valor: paypal }),
+      s.from('configuracion').upsert({ clave: 'contacto_email', valor: email }),
+    ])
+    onMsg('✓ Datos de donación actualizados')
+    setLoading(false); setTimeout(() => onMsg(''), 3000)
+  }
+
+  const inp = { background: '#1b2415', border: '1px solid rgba(200,160,74,0.3)', color: '#f0e6c8', padding: '0.7rem 1rem', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', outline: 'none' } as React.CSSProperties
+  const lbl = { display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: '#b8a87a', marginBottom: '0.4rem', fontFamily: 'monospace' }
+
+  return (
+    <div>
+      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1.5rem' }}>💰 Datos de donación</div>
+      <p style={{ color: '#b8a87a', fontStyle: 'italic', fontSize: '0.9rem', marginBottom: '2rem', lineHeight: 1.7 }}>
+        Configura los métodos de pago que aparecen en la sección de donaciones de la web. Deja en blanco los que no quieras mostrar.
+      </p>
+      <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+        <div style={{ padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(28,196,162,0.2)' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(28,196,162,0.8)', marginBottom: '1rem' }}>📱 Bizum</div>
+          <label style={lbl}>Número de teléfono</label>
+          <input style={inp} value={bizum} onChange={e => setBizum(e.target.value)} placeholder="Ej: 612345678" />
+          <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontStyle: 'italic', color: '#b8a87a', opacity: 0.7 }}>El visitante podrá copiar este número al pulsar la tarjeta de Bizum</div>
+        </div>
+
+        <div style={{ padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(0,112,186,0.2)' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(0,112,186,0.8)', marginBottom: '1rem' }}>💳 PayPal</div>
+          <label style={lbl}>Usuario de PayPal.me</label>
+          <input style={inp} value={paypal} onChange={e => setPaypal(e.target.value)} placeholder="Ej: juanvilas" />
+          <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontStyle: 'italic', color: '#b8a87a', opacity: 0.7 }}>Se generará el enlace paypal.me/<strong style={{ color: '#c8a04a' }}>{paypal || 'tuusuario'}</strong></div>
+        </div>
+
+        <div style={{ padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(200,160,74,0.2)' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1rem' }}>✉️ Email de contacto</div>
+          <label style={lbl}>Correo electrónico</label>
+          <input style={inp} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Ej: hola@juanvilas.com" />
+          <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontStyle: 'italic', color: '#b8a87a', opacity: 0.7 }}>Para quien quiera contactar contigo de otra manera</div>
+        </div>
+
+        <button type="submit" disabled={loading} style={{ background: '#c8a04a', color: '#0e120b', padding: '0.9rem 2.5rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1, alignSelf: 'flex-start' }}>
+          {loading ? 'Guardando...' : '✓ Guardar datos'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
 function TemporadasTab({ onMsg, onTemporadasChange }: { onMsg: (m: string) => void, onTemporadasChange: (t: any[]) => void }) {
   const [temporadas, setTemporadas] = useState<any[]>([])
   const [nuevoAño, setNuevoAño] = useState(new Date().getFullYear() + 1)
@@ -236,17 +294,14 @@ function TemporadasTab({ onMsg, onTemporadasChange }: { onMsg: (m: string) => vo
   useEffect(() => { cargar() }, [])
 
   async function cargar() {
-    const s = createClient()
-    const { data } = await s.from('temporadas').select('*').order('año')
-    setTemporadas(data ?? [])
-    onTemporadasChange(data ?? [])
+    const { data } = await createClient().from('temporadas').select('*').order('año')
+    setTemporadas(data ?? []); onTemporadasChange(data ?? [])
   }
 
   async function añadir(e: React.FormEvent) {
     e.preventDefault(); setLoading(true)
-    const s = createClient()
     if (temporadas.find(t => t.año === nuevoAño)) { onMsg('❌ Ya existe esa temporada'); setLoading(false); setTimeout(() => onMsg(''), 3000); return }
-    const { error } = await s.from('temporadas').insert({ año: nuevoAño, activa: false })
+    const { error } = await createClient().from('temporadas').insert({ año: nuevoAño, activa: false })
     if (error) onMsg('❌ Error: ' + error.message)
     else { onMsg('✓ Temporada ' + nuevoAño + ' creada'); cargar() }
     setLoading(false); setTimeout(() => onMsg(''), 3000)
@@ -254,8 +309,7 @@ function TemporadasTab({ onMsg, onTemporadasChange }: { onMsg: (m: string) => vo
 
   async function eliminar(id: number, año: number) {
     if (!confirm(`¿Eliminar temporada ${año} y todos sus datos?`)) return
-    const s = createClient()
-    await s.from('temporadas').delete().eq('id', id)
+    await createClient().from('temporadas').delete().eq('id', id)
     onMsg('✓ Temporada ' + año + ' eliminada'); cargar(); setTimeout(() => onMsg(''), 3000)
   }
 
@@ -265,33 +319,25 @@ function TemporadasTab({ onMsg, onTemporadasChange }: { onMsg: (m: string) => vo
     <div>
       <form onSubmit={añadir} style={{ marginBottom: '3rem', padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(200,160,74,0.2)' }}>
         <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1rem' }}>+ Nueva temporada</div>
-        <p style={{ color: '#b8a87a', fontStyle: 'italic', fontSize: '0.9rem', marginBottom: '1.2rem', lineHeight: 1.7 }}>
-          Crea una nueva temporada al inicio de cada año. Los gastos e ingresos de cada temporada son independientes — elige la temporada al añadir cada registro.
-        </p>
+        <p style={{ color: '#b8a87a', fontStyle: 'italic', fontSize: '0.9rem', marginBottom: '1.2rem', lineHeight: 1.7 }}>Crea una nueva temporada al inicio de cada año. Los gastos e ingresos son independientes por temporada.</p>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '0.4rem', fontFamily: 'monospace' }}>Año</label>
             <input style={{...inp, width: 120}} type="number" min="2024" max="2040" value={nuevoAño} onChange={e => setNuevoAño(parseInt(e.target.value))} />
           </div>
           <button type="submit" disabled={loading} style={{ background: '#c8a04a', color: '#0e120b', padding: '0.9rem 2rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>
-            {loading ? 'Creando...' : '+ Crear temporada'}
+            {loading ? 'Creando...' : '+ Crear'}
           </button>
         </div>
       </form>
-
-      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>Temporadas ({temporadas.length})</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
         {temporadas.map(t => (
           <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.2rem 1.5rem', background: t.activa ? 'rgba(200,160,74,0.08)' : '#1b2415', border: `1px solid ${t.activa ? 'rgba(200,160,74,0.5)' : 'rgba(200,160,74,0.15)'}` }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.3rem', fontWeight: 700, color: t.activa ? '#c8a04a' : '#f0e6c8' }}>Temporada {t.año}</div>
-              <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: t.activa ? '#c8a04a' : '#b8a87a', marginTop: '0.2rem' }}>
-                {t.activa ? '● Activa — aparece por defecto en la web' : '○ Visible en la web (botón de temporada)'}
-              </div>
+              <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: t.activa ? '#c8a04a' : '#b8a87a', marginTop: '0.2rem' }}>{t.activa ? '● Activa' : '○ Visible en la web'}</div>
             </div>
-            {!t.activa && (
-              <button onClick={() => eliminar(t.id, t.año)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.4rem 0.7rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', flexShrink: 0 }}>✕</button>
-            )}
+            {!t.activa && <button onClick={() => eliminar(t.id, t.año)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.4rem 0.7rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem' }}>✕</button>}
           </div>
         ))}
       </div>
@@ -305,13 +351,12 @@ function HitosTab({ onMsg }: { onMsg: (m: string) => void }) {
   const [nuevo, setNuevo] = useState({ nombre: '', descripcion: '', emoji: '🎯', fecha_texto: '', completado: false, fecha_completado: '' })
 
   useEffect(() => { cargar() }, [])
-  async function cargar() { const s = createClient(); const { data } = await s.from('hitos').select('*').order('orden'); setHitos(data ?? []) }
+  async function cargar() { const { data } = await createClient().from('hitos').select('*').order('orden'); setHitos(data ?? []) }
 
   async function addHito(e: React.FormEvent) {
     e.preventDefault(); setLoading(true)
-    const s = createClient()
     const maxOrden = hitos.length > 0 ? Math.max(...hitos.map(h => h.orden)) + 1 : 1
-    const { error } = await s.from('hitos').insert({
+    const { error } = await createClient().from('hitos').insert({
       nombre: nuevo.nombre || null, descripcion: nuevo.descripcion || null,
       emoji: nuevo.emoji || '🎯', fecha_texto: nuevo.fecha_texto || null,
       completado: nuevo.completado,
@@ -324,14 +369,13 @@ function HitosTab({ onMsg }: { onMsg: (m: string) => void }) {
   }
 
   async function toggle(id: number, completado: boolean) {
-    const s = createClient()
-    await s.from('hitos').update({ completado: !completado, fecha_completado: !completado ? new Date().toISOString().split('T')[0] : null }).eq('id', id)
+    await createClient().from('hitos').update({ completado: !completado, fecha_completado: !completado ? new Date().toISOString().split('T')[0] : null }).eq('id', id)
     cargar()
   }
 
   async function eliminar(id: number) {
     if (!confirm('¿Eliminar este hito?')) return
-    const s = createClient(); await s.from('hitos').delete().eq('id', id)
+    await createClient().from('hitos').delete().eq('id', id)
     onMsg('✓ Hito eliminado'); cargar(); setTimeout(() => onMsg(''), 3000)
   }
 
@@ -339,8 +383,7 @@ function HitosTab({ onMsg }: { onMsg: (m: string) => void }) {
     const idx = hitos.findIndex(h => h.id === id)
     const swapIdx = direccion === 'up' ? idx - 1 : idx + 1
     if (swapIdx < 0 || swapIdx >= hitos.length) return
-    const s = createClient()
-    const a = hitos[idx]; const b = hitos[swapIdx]
+    const a = hitos[idx]; const b = hitos[swapIdx]; const s = createClient()
     await Promise.all([s.from('hitos').update({ orden: b.orden }).eq('id', a.id), s.from('hitos').update({ orden: a.orden }).eq('id', b.id)])
     cargar()
   }
@@ -356,7 +399,7 @@ function HitosTab({ onMsg }: { onMsg: (m: string) => void }) {
           <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Nombre <span style={{ opacity: 0.5 }}>(opcional)</span></label><input style={inp} value={nuevo.nombre} onChange={e => setNuevo({...nuevo, nombre: e.target.value})} placeholder="Ej: Tractor pequeño" /></div>
           <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Descripción <span style={{ opacity: 0.5 }}>(opcional)</span></label><input style={inp} value={nuevo.descripcion} onChange={e => setNuevo({...nuevo, descripcion: e.target.value})} placeholder="Ej: Para labores de suelo" /></div>
           <div><label style={lbl}>Emoji</label><input style={inp} value={nuevo.emoji} onChange={e => setNuevo({...nuevo, emoji: e.target.value})} placeholder="🎯" /></div>
-          <div><label style={lbl}>Fecha / objetivo <span style={{ opacity: 0.5 }}>(texto libre)</span></label><input style={inp} value={nuevo.fecha_texto} onChange={e => setNuevo({...nuevo, fecha_texto: e.target.value})} placeholder="Ej: Noviembre 2026" /></div>
+          <div><label style={lbl}>Fecha / objetivo</label><input style={inp} value={nuevo.fecha_texto} onChange={e => setNuevo({...nuevo, fecha_texto: e.target.value})} placeholder="Ej: Noviembre 2026" /></div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', gridColumn: '1/-1' }}>
             <input type="checkbox" id="comp-check" checked={nuevo.completado} onChange={e => setNuevo({...nuevo, completado: e.target.checked})} style={{ width: 18, height: 18, accentColor: '#27ae60', cursor: 'pointer' }} />
             <label htmlFor="comp-check" style={{ ...lbl, marginBottom: 0, cursor: 'pointer' }}>Ya completado</label>
@@ -365,8 +408,7 @@ function HitosTab({ onMsg }: { onMsg: (m: string) => void }) {
         </div>
         <button type="submit" disabled={loading} style={{ background: '#c8a04a', color: '#0e120b', padding: '0.8rem 2rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>{loading ? 'Guardando...' : '+ Añadir hito'}</button>
       </form>
-
-      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>Hitos ({hitos.length}) — ↑↓ reordenar · ✓ completar · ✕ eliminar</div>
+      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>Hitos ({hitos.length})</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
         {hitos.map((h, idx) => (
           <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '1rem', background: h.completado ? 'rgba(107,140,58,0.08)' : '#1b2415', border: `1px solid ${h.completado ? 'rgba(107,140,58,0.4)' : 'rgba(200,160,74,0.15)'}` }}>
@@ -394,22 +436,19 @@ function VideoTab({ onMsg }: { onMsg: (m: string) => void }) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const s = createClient()
-    s.from('configuracion').select('valor').eq('clave', 'video_youtube').single().then(({ data }) => { if (data?.valor) setUrl(data.valor) })
+    createClient().from('configuracion').select('valor').eq('clave', 'video_youtube').single().then(({ data }) => { if (data?.valor) setUrl(data.valor) })
   }, [])
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault(); setLoading(true)
-    const s = createClient()
-    await s.from('configuracion').upsert({ clave: 'video_youtube', valor: url })
+    await createClient().from('configuracion').upsert({ clave: 'video_youtube', valor: url })
     onMsg('✓ Vídeo actualizado — visible en ~1 minuto')
     setLoading(false); setTimeout(() => onMsg(''), 4000)
   }
 
   async function quitar() {
     if (!confirm('¿Quitar el vídeo?')) return; setLoading(true)
-    const s = createClient()
-    await s.from('configuracion').upsert({ clave: 'video_youtube', valor: '' })
+    await createClient().from('configuracion').upsert({ clave: 'video_youtube', valor: '' })
     setUrl(''); onMsg('✓ Vídeo eliminado'); setLoading(false); setTimeout(() => onMsg(''), 3000)
   }
 
@@ -426,7 +465,7 @@ function VideoTab({ onMsg }: { onMsg: (m: string) => void }) {
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button type="submit" disabled={loading} style={{ background: '#c8a04a', color: '#0e120b', padding: '0.9rem 2rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>{loading ? 'Guardando...' : '✓ Guardar vídeo'}</button>
-          {url && <button type="button" onClick={quitar} disabled={loading} style={{ background: 'rgba(192,57,43,0.15)', color: '#e74c3c', padding: '0.9rem 2rem', border: '1px solid rgba(192,57,43,0.3)', fontFamily: 'monospace', fontSize: '0.8rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase' }}>✕ Quitar vídeo</button>}
+          {url && <button type="button" onClick={quitar} disabled={loading} style={{ background: 'rgba(192,57,43,0.15)', color: '#e74c3c', padding: '0.9rem 2rem', border: '1px solid rgba(192,57,43,0.3)', fontFamily: 'monospace', fontSize: '0.8rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase' }}>✕ Quitar</button>}
         </div>
       </form>
       {videoId && (
