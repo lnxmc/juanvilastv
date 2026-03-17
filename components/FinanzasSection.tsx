@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 
 type Gasto = { id: number; nombre: string; importe: number; categoria: string; emoji: string; fecha: string }
@@ -15,101 +15,33 @@ interface Props {
   totalIngresosInicial: number
 }
 
-const PAGE_SIZE = 10
+const PAGE = 10
 
 export default function FinanzasSection({ temporadaActiva, temporadas, gastosIniciales, ingresosIniciales }: Props) {
   const [seleccionada, setSeleccionada] = useState<any>(temporadaActiva)
-  const [gastos, setGastos] = useState<Gasto[]>(gastosIniciales.slice(0, PAGE_SIZE))
-  const [ingresos, setIngresos] = useState<Ingreso[]>(ingresosIniciales.slice(0, PAGE_SIZE))
+  const [gastos, setGastos] = useState<Gasto[]>(gastosIniciales.slice(0, PAGE))
+  const [ingresos, setIngresos] = useState<Ingreso[]>(ingresosIniciales.slice(0, PAGE))
   const [totalGastosAll, setTotalGastosAll] = useState<number>(gastosIniciales.reduce((a, g) => a + Number(g.importe), 0))
   const [totalIngresosAll, setTotalIngresosAll] = useState<number>(ingresosIniciales.reduce((a, i) => a + Number(i.importe), 0))
+  const [gastosHayMas, setGastosHayMas] = useState(gastosIniciales.length > PAGE)
+  const [ingresosHayMas, setIngresosHayMas] = useState(ingresosIniciales.length > PAGE)
   const [gastosPage, setGastosPage] = useState(0)
   const [ingresosPage, setIngresosPage] = useState(0)
-  const [gastosHayMas, setGastosHayMas] = useState(gastosIniciales.length > PAGE_SIZE)
-  const [ingresosHayMas, setIngresosHayMas] = useState(ingresosIniciales.length > PAGE_SIZE)
   const [cargandoTemporada, setCargandoTemporada] = useState(false)
-  const [cargandoMasGastos, setCargandoMasGastos] = useState(false)
-  const [cargandoMasIngresos, setCargandoMasIngresos] = useState(false)
-
-  const gastosEndRef = useRef<HTMLDivElement>(null)
-  const ingresosEndRef = useRef<HTMLDivElement>(null)
+  const [cargandoGastos, setCargandoGastos] = useState(false)
+  const [cargandoIngresos, setCargandoIngresos] = useState(false)
 
   const fmt = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  const balance = totalIngresosAll - totalGastosAll
 
-  // Cargar más gastos
-  const cargarMasGastos = useCallback(async () => {
-    if (cargandoMasGastos || !gastosHayMas) return
-    setCargandoMasGastos(true)
-    const nextPage = gastosPage + 1
-    const s = createClient()
-    const { data } = await s.from('gastos').select('*')
-      .eq('temporada_id', seleccionada?.id)
-      .order('fecha', { ascending: false })
-      .range(nextPage * PAGE_SIZE, (nextPage + 1) * PAGE_SIZE - 1)
-    if (data && data.length > 0) {
-      setGastos(prev => [...prev, ...data])
-      setGastosPage(nextPage)
-      setGastosHayMas(data.length === PAGE_SIZE)
-    } else {
-      setGastosHayMas(false)
-    }
-    setCargandoMasGastos(false)
-  }, [cargandoMasGastos, gastosHayMas, gastosPage, seleccionada])
-
-  // Cargar más ingresos
-  const cargarMasIngresos = useCallback(async () => {
-    if (cargandoMasIngresos || !ingresosHayMas) return
-    setCargandoMasIngresos(true)
-    const nextPage = ingresosPage + 1
-    const s = createClient()
-    const { data } = await s.from('ingresos').select('*')
-      .eq('temporada_id', seleccionada?.id)
-      .order('fecha', { ascending: false })
-      .range(nextPage * PAGE_SIZE, (nextPage + 1) * PAGE_SIZE - 1)
-    if (data && data.length > 0) {
-      setIngresos(prev => [...prev, ...data])
-      setIngresosPage(nextPage)
-      setIngresosHayMas(data.length === PAGE_SIZE)
-    } else {
-      setIngresosHayMas(false)
-    }
-    setCargandoMasIngresos(false)
-  }, [cargandoMasIngresos, ingresosHayMas, ingresosPage, seleccionada])
-
-  // IntersectionObserver para gastos
-  useEffect(() => {
-    const el = gastosEndRef.current
-    if (!el) return
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) cargarMasGastos()
-    }, { threshold: 0.1 })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [cargarMasGastos])
-
-  // IntersectionObserver para ingresos
-  useEffect(() => {
-    const el = ingresosEndRef.current
-    if (!el) return
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) cargarMasIngresos()
-    }, { threshold: 0.1 })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [cargarMasIngresos])
-
-  // Cambiar temporada
   async function cambiar(t: any) {
     if (t.id === seleccionada?.id) return
     setCargandoTemporada(true)
     setSeleccionada(t)
     const s = createClient()
-    const [{ data: g, count: gc }, { data: i, count: ic }] = await Promise.all([
-      s.from('gastos').select('*', { count: 'exact' }).eq('temporada_id', t.id).order('fecha', { ascending: false }).range(0, PAGE_SIZE - 1),
-      s.from('ingresos').select('*', { count: 'exact' }).eq('temporada_id', t.id).order('fecha', { ascending: false }).range(0, PAGE_SIZE - 1),
-    ])
-    // Totales completos
-    const [{ data: todosG }, { data: todosI }] = await Promise.all([
+    const [{ data: g }, { data: i }, { data: todosG }, { data: todosI }] = await Promise.all([
+      s.from('gastos').select('*').eq('temporada_id', t.id).order('fecha', { ascending: false }).range(0, PAGE - 1),
+      s.from('ingresos').select('*').eq('temporada_id', t.id).order('fecha', { ascending: false }).range(0, PAGE - 1),
       s.from('gastos').select('importe').eq('temporada_id', t.id),
       s.from('ingresos').select('importe').eq('temporada_id', t.id),
     ])
@@ -117,14 +49,48 @@ export default function FinanzasSection({ temporadaActiva, temporadas, gastosIni
     setIngresos(i ?? [])
     setGastosPage(0)
     setIngresosPage(0)
-    setGastosHayMas((g ?? []).length === PAGE_SIZE)
-    setIngresosHayMas((i ?? []).length === PAGE_SIZE)
+    setGastosHayMas((g ?? []).length === PAGE)
+    setIngresosHayMas((i ?? []).length === PAGE)
     setTotalGastosAll((todosG ?? []).reduce((a, x) => a + Number(x.importe), 0))
     setTotalIngresosAll((todosI ?? []).reduce((a, x) => a + Number(x.importe), 0))
     setCargandoTemporada(false)
   }
 
-  const balance = totalIngresosAll - totalGastosAll
+  async function verMasGastos() {
+    setCargandoGastos(true)
+    const next = gastosPage + 1
+    const s = createClient()
+    const { data } = await s.from('gastos').select('*')
+      .eq('temporada_id', seleccionada?.id)
+      .order('fecha', { ascending: false })
+      .range(next * PAGE, (next + 1) * PAGE - 1)
+    if (data && data.length > 0) {
+      setGastos(prev => [...prev, ...data])
+      setGastosPage(next)
+      setGastosHayMas(data.length === PAGE)
+    } else {
+      setGastosHayMas(false)
+    }
+    setCargandoGastos(false)
+  }
+
+  async function verMasIngresos() {
+    setCargandoIngresos(true)
+    const next = ingresosPage + 1
+    const s = createClient()
+    const { data } = await s.from('ingresos').select('*')
+      .eq('temporada_id', seleccionada?.id)
+      .order('fecha', { ascending: false })
+      .range(next * PAGE, (next + 1) * PAGE - 1)
+    if (data && data.length > 0) {
+      setIngresos(prev => [...prev, ...data])
+      setIngresosPage(next)
+      setIngresosHayMas(data.length === PAGE)
+    } else {
+      setIngresosHayMas(false)
+    }
+    setCargandoIngresos(false)
+  }
 
   return (
     <section id="finanzas" style={{ background: 'linear-gradient(to bottom, var(--bg-deep), var(--bg-dark))' }}>
@@ -134,7 +100,6 @@ export default function FinanzasSection({ temporadaActiva, temporadas, gastosIni
         <div className="section-divider" />
       </div>
 
-      {/* Selector temporadas */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '3rem', flexWrap: 'wrap' }}>
         {temporadas.map((t: any) => {
           const activa = t.id === seleccionada?.id
@@ -177,11 +142,14 @@ export default function FinanzasSection({ temporadaActiva, temporadas, gastosIni
                 </div>
                 <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.3rem 0.7rem', fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', background: 'rgba(192,57,43,0.15)', color: 'var(--red-loss-light)', border: '1px solid rgba(192,57,43,0.3)' }}>↑ Inversión</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', maxHeight: 480, overflowY: 'auto', paddingRight: '4px' }}>
+
+              <div className="finance-panel-scroll" style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', maxHeight: 520, overflowY: 'auto', paddingRight: '8px' }}>
                 {gastos.length === 0 ? (
                   <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--cream-dim)', fontStyle: 'italic', opacity: 0.5 }}>Sin gastos registrados</div>
                 ) : gastos.map(g => (
-                  <div key={g.id} className="finance-item-grid" style={{ display: 'grid', gridTemplateColumns: '44px 1fr auto', gap: '0.8rem', alignItems: 'center', padding: '0.8rem', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div key={g.id} className="finance-item-grid" style={{ display: 'grid', gridTemplateColumns: '44px 1fr auto', gap: '0.8rem', alignItems: 'center', padding: '0.8rem', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.025)')}>
                     <div style={{ width: 38, height: 38, background: 'rgba(192,57,43,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>{g.emoji}</div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--cream)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.nombre}</div>
@@ -192,10 +160,24 @@ export default function FinanzasSection({ temporadaActiva, temporadas, gastosIni
                     <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--red-loss-light)', textAlign: 'right', whiteSpace: 'nowrap' }}>−{fmt(Number(g.importe))} €</div>
                   </div>
                 ))}
-                {/* Trigger scroll infinito gastos */}
-                <div ref={gastosEndRef} style={{ height: 1 }} />
-                {cargandoMasGastos && (
-                  <div style={{ textAlign: 'center', padding: '0.8rem', fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold)', opacity: 0.6 }}>Cargando...</div>
+
+                {gastosHayMas && (
+                  <button onClick={verMasGastos} disabled={cargandoGastos} style={{
+                    width: '100%', padding: '0.8rem',
+                    background: 'transparent',
+                    border: '1px dashed rgba(192,57,43,0.3)',
+                    color: 'var(--red-loss-light)',
+                    fontFamily: "'Space Mono', monospace",
+                    fontSize: '0.68rem', letterSpacing: '0.15em',
+                    textTransform: 'uppercase', cursor: 'pointer',
+                    opacity: cargandoGastos ? 0.5 : 0.7,
+                    transition: 'opacity 0.2s',
+                    marginTop: '0.3rem',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = cargandoGastos ? '0.5' : '0.7')}>
+                    {cargandoGastos ? 'Cargando...' : '↓ Ver más gastos'}
+                  </button>
                 )}
               </div>
             </div>
@@ -212,11 +194,14 @@ export default function FinanzasSection({ temporadaActiva, temporadas, gastosIni
                 </div>
                 <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.3rem 0.7rem', fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', background: 'rgba(39,174,96,0.15)', color: 'var(--green-gain-light)', border: '1px solid rgba(39,174,96,0.3)' }}>↳ {ingresos.length === 0 ? 'Pendiente' : 'Registrado'}</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', maxHeight: 480, overflowY: 'auto', paddingRight: '4px' }}>
+
+              <div className="finance-panel-scroll" style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', maxHeight: 520, overflowY: 'auto', paddingRight: '8px' }}>
                 {ingresos.length === 0 ? (
                   <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--cream-dim)', fontStyle: 'italic', opacity: 0.5, border: '1px dashed rgba(200,160,74,0.2)' }}>🫒 Los ingresos de esta temporada aparecerán aquí</div>
                 ) : ingresos.map(i => (
-                  <div key={i.id} className="finance-item-grid" style={{ display: 'grid', gridTemplateColumns: '44px 1fr auto', gap: '0.8rem', alignItems: 'center', padding: '0.8rem', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div key={i.id} className="finance-item-grid" style={{ display: 'grid', gridTemplateColumns: '44px 1fr auto', gap: '0.8rem', alignItems: 'center', padding: '0.8rem', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.025)')}>
                     <div style={{ width: 38, height: 38, background: 'rgba(39,174,96,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>{i.emoji}</div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--cream)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.nombre}</div>
@@ -228,10 +213,24 @@ export default function FinanzasSection({ temporadaActiva, temporadas, gastosIni
                     <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--green-gain-light)', textAlign: 'right', whiteSpace: 'nowrap' }}>+{fmt(Number(i.importe))} €</div>
                   </div>
                 ))}
-                {/* Trigger scroll infinito ingresos */}
-                <div ref={ingresosEndRef} style={{ height: 1 }} />
-                {cargandoMasIngresos && (
-                  <div style={{ textAlign: 'center', padding: '0.8rem', fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold)', opacity: 0.6 }}>Cargando...</div>
+
+                {ingresosHayMas && (
+                  <button onClick={verMasIngresos} disabled={cargandoIngresos} style={{
+                    width: '100%', padding: '0.8rem',
+                    background: 'transparent',
+                    border: '1px dashed rgba(39,174,96,0.3)',
+                    color: 'var(--green-gain-light)',
+                    fontFamily: "'Space Mono', monospace",
+                    fontSize: '0.68rem', letterSpacing: '0.15em',
+                    textTransform: 'uppercase', cursor: 'pointer',
+                    opacity: cargandoIngresos ? 0.5 : 0.7,
+                    transition: 'opacity 0.2s',
+                    marginTop: '0.3rem',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = cargandoIngresos ? '0.5' : '0.7')}>
+                    {cargandoIngresos ? 'Cargando...' : '↓ Ver más ingresos'}
+                  </button>
                 )}
               </div>
             </div>

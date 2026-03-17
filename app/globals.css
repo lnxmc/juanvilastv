@@ -75,7 +75,6 @@ nav {
 }
 .nav-links a:hover { color: var(--gold); }
 
-/* Mobile links ocultos por defecto en desktop */
 .nav-mobile-links { display: none; }
 
 /* ─── SECTIONS ─── */
@@ -177,7 +176,6 @@ section {
   align-items: center;
   max-width: 1300px;
 }
-
 .hero-grid.no-video {
   grid-template-columns: 1fr;
   max-width: 800px;
@@ -188,6 +186,26 @@ section {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
+}
+
+/* ─── SCROLLBAR PANELES FINANZAS ─── */
+.finance-panel-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold-muted) var(--bg-card);
+}
+.finance-panel-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.finance-panel-scroll::-webkit-scrollbar-track {
+  background: var(--bg-card);
+  border-radius: 2px;
+}
+.finance-panel-scroll::-webkit-scrollbar-thumb {
+  background: var(--gold-muted);
+  border-radius: 2px;
+}
+.finance-panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--gold);
 }
 
 /* ─── ROADMAP ─── */
@@ -255,17 +273,10 @@ footer {
 ════════════════════════════════ */
 @media (max-width: 768px) {
   body { font-size: 16px; }
-
-  nav {
-    padding: 1rem 1.5rem;
-    background: rgba(14,18,11,0.98);
-  }
+  nav { padding: 1rem 1.5rem; background: rgba(14,18,11,0.98); }
   .nav-logo { font-size: 1rem; }
   .nav-links { display: none; }
-  .nav-mobile-links {
-    display: flex;
-    gap: 1rem;
-  }
+  .nav-mobile-links { display: flex; gap: 1rem; }
   .nav-mobile-links a {
     color: var(--cream-dim);
     text-decoration: none;
@@ -274,29 +285,16 @@ footer {
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
-
-  #hero {
-    padding: 6rem 1.5rem 4rem;
-    min-height: auto;
-    align-items: flex-start;
-  }
+  #hero { padding: 6rem 1.5rem 4rem; min-height: auto; align-items: flex-start; }
   .hero-grid { grid-template-columns: 1fr; gap: 2rem; max-width: 100%; }
   .hero-grid.no-video { max-width: 100%; }
   .hero-stats-bottom { display: none !important; }
-
   section { padding: 4rem 1.5rem; }
   .finance-grid { grid-template-columns: 1fr; gap: 1.5rem; }
   .milestones-row { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
   .roadmap-line { display: none; }
-
   .btn-primary, .btn-ghost { padding: 0.75rem 1.5rem; font-size: 0.7rem; }
-
-  footer {
-    flex-direction: column;
-    text-align: center;
-    padding: 2rem 1.5rem;
-    gap: 1rem;
-  }
+  footer { flex-direction: column; text-align: center; padding: 2rem 1.5rem; gap: 1rem; }
   .footer-links { justify-content: center; gap: 1.2rem; }
   .finance-item-grid { grid-template-columns: 40px 1fr auto !important; gap: 0.7rem !important; }
   .balance-section-wrap { flex-direction: column !important; gap: 1rem !important; }
