@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/utils/supabase/client'
 
 type Gasto = { id: number; nombre: string; importe: number; categoria: string; emoji: string; fecha: string }
@@ -15,35 +15,116 @@ interface Props {
   totalIngresosInicial: number
 }
 
-export default function FinanzasSection({
-  temporadaActiva,
-  temporadas,
-  gastosIniciales,
-  ingresosIniciales,
-}: Props) {
-  const [seleccionada, setSeleccionada] = useState<any>(temporadaActiva)
-  const [gastos, setGastos] = useState<Gasto[]>(gastosIniciales)
-  const [ingresos, setIngresos] = useState<Ingreso[]>(ingresosIniciales)
-  const [cargando, setCargando] = useState(false)
+const PAGE_SIZE = 10
 
-  const totalGastos = gastos.reduce((acc, g) => acc + Number(g.importe), 0)
-  const totalIngresos = ingresos.reduce((acc, i) => acc + Number(i.importe), 0)
-  const balance = totalIngresos - totalGastos
+export default function FinanzasSection({ temporadaActiva, temporadas, gastosIniciales, ingresosIniciales }: Props) {
+  const [seleccionada, setSeleccionada] = useState<any>(temporadaActiva)
+  const [gastos, setGastos] = useState<Gasto[]>(gastosIniciales.slice(0, PAGE_SIZE))
+  const [ingresos, setIngresos] = useState<Ingreso[]>(ingresosIniciales.slice(0, PAGE_SIZE))
+  const [totalGastosAll, setTotalGastosAll] = useState<number>(gastosIniciales.reduce((a, g) => a + Number(g.importe), 0))
+  const [totalIngresosAll, setTotalIngresosAll] = useState<number>(ingresosIniciales.reduce((a, i) => a + Number(i.importe), 0))
+  const [gastosPage, setGastosPage] = useState(0)
+  const [ingresosPage, setIngresosPage] = useState(0)
+  const [gastosHayMas, setGastosHayMas] = useState(gastosIniciales.length > PAGE_SIZE)
+  const [ingresosHayMas, setIngresosHayMas] = useState(ingresosIniciales.length > PAGE_SIZE)
+  const [cargandoTemporada, setCargandoTemporada] = useState(false)
+  const [cargandoMasGastos, setCargandoMasGastos] = useState(false)
+  const [cargandoMasIngresos, setCargandoMasIngresos] = useState(false)
+
+  const gastosEndRef = useRef<HTMLDivElement>(null)
+  const ingresosEndRef = useRef<HTMLDivElement>(null)
+
   const fmt = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 
+  // Cargar más gastos
+  const cargarMasGastos = useCallback(async () => {
+    if (cargandoMasGastos || !gastosHayMas) return
+    setCargandoMasGastos(true)
+    const nextPage = gastosPage + 1
+    const s = createClient()
+    const { data } = await s.from('gastos').select('*')
+      .eq('temporada_id', seleccionada?.id)
+      .order('fecha', { ascending: false })
+      .range(nextPage * PAGE_SIZE, (nextPage + 1) * PAGE_SIZE - 1)
+    if (data && data.length > 0) {
+      setGastos(prev => [...prev, ...data])
+      setGastosPage(nextPage)
+      setGastosHayMas(data.length === PAGE_SIZE)
+    } else {
+      setGastosHayMas(false)
+    }
+    setCargandoMasGastos(false)
+  }, [cargandoMasGastos, gastosHayMas, gastosPage, seleccionada])
+
+  // Cargar más ingresos
+  const cargarMasIngresos = useCallback(async () => {
+    if (cargandoMasIngresos || !ingresosHayMas) return
+    setCargandoMasIngresos(true)
+    const nextPage = ingresosPage + 1
+    const s = createClient()
+    const { data } = await s.from('ingresos').select('*')
+      .eq('temporada_id', seleccionada?.id)
+      .order('fecha', { ascending: false })
+      .range(nextPage * PAGE_SIZE, (nextPage + 1) * PAGE_SIZE - 1)
+    if (data && data.length > 0) {
+      setIngresos(prev => [...prev, ...data])
+      setIngresosPage(nextPage)
+      setIngresosHayMas(data.length === PAGE_SIZE)
+    } else {
+      setIngresosHayMas(false)
+    }
+    setCargandoMasIngresos(false)
+  }, [cargandoMasIngresos, ingresosHayMas, ingresosPage, seleccionada])
+
+  // IntersectionObserver para gastos
+  useEffect(() => {
+    const el = gastosEndRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) cargarMasGastos()
+    }, { threshold: 0.1 })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [cargarMasGastos])
+
+  // IntersectionObserver para ingresos
+  useEffect(() => {
+    const el = ingresosEndRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) cargarMasIngresos()
+    }, { threshold: 0.1 })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [cargarMasIngresos])
+
+  // Cambiar temporada
   async function cambiar(t: any) {
     if (t.id === seleccionada?.id) return
-    setCargando(true)
+    setCargandoTemporada(true)
     setSeleccionada(t)
     const s = createClient()
-    const [{ data: g }, { data: i }] = await Promise.all([
-      s.from('gastos').select('*').eq('temporada_id', t.id).order('fecha', { ascending: false }),
-      s.from('ingresos').select('*').eq('temporada_id', t.id).order('fecha', { ascending: false }),
+    const [{ data: g, count: gc }, { data: i, count: ic }] = await Promise.all([
+      s.from('gastos').select('*', { count: 'exact' }).eq('temporada_id', t.id).order('fecha', { ascending: false }).range(0, PAGE_SIZE - 1),
+      s.from('ingresos').select('*', { count: 'exact' }).eq('temporada_id', t.id).order('fecha', { ascending: false }).range(0, PAGE_SIZE - 1),
+    ])
+    // Totales completos
+    const [{ data: todosG }, { data: todosI }] = await Promise.all([
+      s.from('gastos').select('importe').eq('temporada_id', t.id),
+      s.from('ingresos').select('importe').eq('temporada_id', t.id),
     ])
     setGastos(g ?? [])
     setIngresos(i ?? [])
-    setCargando(false)
+    setGastosPage(0)
+    setIngresosPage(0)
+    setGastosHayMas((g ?? []).length === PAGE_SIZE)
+    setIngresosHayMas((i ?? []).length === PAGE_SIZE)
+    setTotalGastosAll((todosG ?? []).reduce((a, x) => a + Number(x.importe), 0))
+    setTotalIngresosAll((todosI ?? []).reduce((a, x) => a + Number(x.importe), 0))
+    setCargandoTemporada(false)
   }
+
+  const balance = totalIngresosAll - totalGastosAll
 
   return (
     <section id="finanzas" style={{ background: 'linear-gradient(to bottom, var(--bg-deep), var(--bg-dark))' }}>
@@ -58,36 +139,29 @@ export default function FinanzasSection({
         {temporadas.map((t: any) => {
           const activa = t.id === seleccionada?.id
           return (
-            <button
-              key={t.id}
-              onClick={() => cambiar(t)}
-              style={{
-                padding: '0.5rem 1.2rem',
-                fontFamily: "'Space Mono', monospace",
-                fontSize: '0.75rem',
-                letterSpacing: '0.1em',
-                cursor: 'pointer',
-                border: `1px solid ${activa ? 'var(--gold)' : 'rgba(200,160,74,0.2)'}`,
-                background: activa ? 'var(--gold)' : 'transparent',
-                color: activa ? 'var(--bg-deep)' : 'var(--cream-dim)',
-                fontWeight: activa ? 700 : 400,
-                transition: 'all 0.25s',
-              }}
-            >
+            <button key={t.id} onClick={() => cambiar(t)} style={{
+              padding: '0.5rem 1.2rem',
+              fontFamily: "'Space Mono', monospace", fontSize: '0.75rem',
+              letterSpacing: '0.1em', cursor: 'pointer',
+              border: `1px solid ${activa ? 'var(--gold)' : 'rgba(200,160,74,0.2)'}`,
+              background: activa ? 'var(--gold)' : 'transparent',
+              color: activa ? 'var(--bg-deep)' : 'var(--cream-dim)',
+              fontWeight: activa ? 700 : 400,
+              transition: 'all 0.25s',
+            }}>
               Temporada {t.año}
             </button>
           )
         })}
       </div>
 
-      {/* Cargando */}
-      {cargando && (
+      {cargandoTemporada && (
         <div style={{ textAlign: 'center', padding: '3rem', fontFamily: "'Space Mono', monospace", fontSize: '0.75rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold)', opacity: 0.7 }}>
           Cargando {seleccionada?.año}...
         </div>
       )}
 
-      {!cargando && (
+      {!cargandoTemporada && (
         <>
           <div className="finance-grid">
 
@@ -96,18 +170,14 @@ export default function FinanzasSection({
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(to right, var(--red-loss), transparent)' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', paddingBottom: '1.2rem', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: '0.8rem' }}>
                 <div>
-                  <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--red-loss-light)', marginBottom: '0.4rem' }}>
-                    Gastos · {seleccionada?.año}
-                  </div>
+                  <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--red-loss-light)', marginBottom: '0.4rem' }}>Gastos · {seleccionada?.año}</div>
                   <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(2rem, 5vw, 2.8rem)', fontWeight: 700, lineHeight: 1, color: 'var(--red-loss-light)' }}>
-                    <sup style={{ fontSize: '1rem', verticalAlign: 'super', fontWeight: 400 }}>−</sup>{fmt(totalGastos)} €
+                    <sup style={{ fontSize: '1rem', verticalAlign: 'super', fontWeight: 400 }}>−</sup>{fmt(totalGastosAll)} €
                   </div>
                 </div>
-                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.3rem 0.7rem', fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', background: 'rgba(192,57,43,0.15)', color: 'var(--red-loss-light)', border: '1px solid rgba(192,57,43,0.3)' }}>
-                  ↑ Inversión
-                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.3rem 0.7rem', fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', background: 'rgba(192,57,43,0.15)', color: 'var(--red-loss-light)', border: '1px solid rgba(192,57,43,0.3)' }}>↑ Inversión</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', maxHeight: 480, overflowY: 'auto', paddingRight: '4px' }}>
                 {gastos.length === 0 ? (
                   <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--cream-dim)', fontStyle: 'italic', opacity: 0.5 }}>Sin gastos registrados</div>
                 ) : gastos.map(g => (
@@ -119,11 +189,14 @@ export default function FinanzasSection({
                         {new Date(g.fecha).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })} · {g.categoria}
                       </div>
                     </div>
-                    <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--red-loss-light)', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      −{fmt(Number(g.importe))} €
-                    </div>
+                    <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--red-loss-light)', textAlign: 'right', whiteSpace: 'nowrap' }}>−{fmt(Number(g.importe))} €</div>
                   </div>
                 ))}
+                {/* Trigger scroll infinito gastos */}
+                <div ref={gastosEndRef} style={{ height: 1 }} />
+                {cargandoMasGastos && (
+                  <div style={{ textAlign: 'center', padding: '0.8rem', fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold)', opacity: 0.6 }}>Cargando...</div>
+                )}
               </div>
             </div>
 
@@ -132,22 +205,16 @@ export default function FinanzasSection({
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(to right, var(--green-gain), transparent)' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', paddingBottom: '1.2rem', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: '0.8rem' }}>
                 <div>
-                  <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--green-gain-light)', marginBottom: '0.4rem' }}>
-                    Ingresos · {seleccionada?.año}
-                  </div>
+                  <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--green-gain-light)', marginBottom: '0.4rem' }}>Ingresos · {seleccionada?.año}</div>
                   <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(2rem, 5vw, 2.8rem)', fontWeight: 700, lineHeight: 1, color: 'var(--green-gain-light)' }}>
-                    <sup style={{ fontSize: '1rem', verticalAlign: 'super', fontWeight: 400 }}>+</sup>{fmt(totalIngresos)} €
+                    <sup style={{ fontSize: '1rem', verticalAlign: 'super', fontWeight: 400 }}>+</sup>{fmt(totalIngresosAll)} €
                   </div>
                 </div>
-                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.3rem 0.7rem', fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', background: 'rgba(39,174,96,0.15)', color: 'var(--green-gain-light)', border: '1px solid rgba(39,174,96,0.3)' }}>
-                  ↳ {ingresos.length === 0 ? 'Pendiente' : 'Registrado'}
-                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.3rem 0.7rem', fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', background: 'rgba(39,174,96,0.15)', color: 'var(--green-gain-light)', border: '1px solid rgba(39,174,96,0.3)' }}>↳ {ingresos.length === 0 ? 'Pendiente' : 'Registrado'}</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', maxHeight: 480, overflowY: 'auto', paddingRight: '4px' }}>
                 {ingresos.length === 0 ? (
-                  <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--cream-dim)', fontStyle: 'italic', opacity: 0.5, border: '1px dashed rgba(200,160,74,0.2)' }}>
-                    🫒 Los ingresos de esta temporada aparecerán aquí
-                  </div>
+                  <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--cream-dim)', fontStyle: 'italic', opacity: 0.5, border: '1px dashed rgba(200,160,74,0.2)' }}>🫒 Los ingresos de esta temporada aparecerán aquí</div>
                 ) : ingresos.map(i => (
                   <div key={i.id} className="finance-item-grid" style={{ display: 'grid', gridTemplateColumns: '44px 1fr auto', gap: '0.8rem', alignItems: 'center', padding: '0.8rem', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)' }}>
                     <div style={{ width: 38, height: 38, background: 'rgba(39,174,96,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>{i.emoji}</div>
@@ -158,11 +225,14 @@ export default function FinanzasSection({
                         {i.kilos_aceituna ? ` · ${Number(i.kilos_aceituna).toLocaleString('es-ES')} kg` : ''}
                       </div>
                     </div>
-                    <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--green-gain-light)', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      +{fmt(Number(i.importe))} €
-                    </div>
+                    <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--green-gain-light)', textAlign: 'right', whiteSpace: 'nowrap' }}>+{fmt(Number(i.importe))} €</div>
                   </div>
                 ))}
+                {/* Trigger scroll infinito ingresos */}
+                <div ref={ingresosEndRef} style={{ height: 1 }} />
+                {cargandoMasIngresos && (
+                  <div style={{ textAlign: 'center', padding: '0.8rem', fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold)', opacity: 0.6 }}>Cargando...</div>
+                )}
               </div>
             </div>
 
@@ -178,15 +248,15 @@ export default function FinanzasSection({
             </div>
             <div style={{ flex: 1, minWidth: 150 }}>
               <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.max(Math.min((totalIngresos / (totalGastos || 1)) * 100, 100), totalGastos > 0 ? 3 : 0)}%`, background: 'linear-gradient(to right, var(--red-loss), var(--green-gain))', transition: 'width 0.8s ease' }} />
+                <div style={{ height: '100%', width: `${Math.max(Math.min((totalIngresosAll / (totalGastosAll || 1)) * 100, 100), totalGastosAll > 0 ? 3 : 0)}%`, background: 'linear-gradient(to right, var(--red-loss), var(--green-gain))', transition: 'width 0.8s ease' }} />
               </div>
               <div style={{ fontSize: '0.82rem', fontStyle: 'italic', color: 'var(--cream-dim)', marginTop: '0.4rem' }}>
-                {totalIngresos === 0 ? 'Los ingresos cerrarán el balance' : `${fmt(totalIngresos)} € ingresados de ${fmt(totalGastos)} € invertidos`}
+                {totalIngresosAll === 0 ? 'Los ingresos cerrarán el balance' : `${fmt(totalIngresosAll)} € ingresados de ${fmt(totalGastosAll)} € invertidos`}
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--cream-dim)', marginBottom: '0.4rem' }}>Total ingresos</div>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem, 4vw, 2.2rem)', fontWeight: 700, color: 'var(--green-gain-light)' }}>+{fmt(totalIngresos)} €</div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem, 4vw, 2.2rem)', fontWeight: 700, color: 'var(--green-gain-light)' }}>+{fmt(totalIngresosAll)} €</div>
             </div>
           </div>
         </>
