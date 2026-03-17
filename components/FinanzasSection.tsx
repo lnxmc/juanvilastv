@@ -1,21 +1,49 @@
 'use client'
 
-type Gasto = { id: number; nombre: string; importe: number; categoria: string; emoji: string; fecha: string; notas?: string }
-type Ingreso = { id: number; nombre: string; importe: number; categoria: string; emoji: string; fecha: string; kilos_aceituna?: number; precio_kilo?: number }
+import { useState } from 'react'
+import { createClient } from '@/utils/supabase/client'
+
+type Gasto = { id: number; nombre: string; importe: number; categoria: string; emoji: string; fecha: string }
+type Ingreso = { id: number; nombre: string; importe: number; categoria: string; emoji: string; fecha: string; kilos_aceituna?: number }
 
 interface Props {
-  temporada: any
+  temporadaActiva: any
   temporadas: any[]
-  gastos: Gasto[]
-  ingresos: Ingreso[]
-  totalGastos: number
-  totalIngresos: number
+  gastosIniciales: Gasto[]
+  ingresosIniciales: Ingreso[]
+  totalGastosInicial: number
+  totalIngresosInicial: number
 }
 
-export default function FinanzasSection({ temporada, temporadas, gastos, ingresos, totalGastos, totalIngresos }: Props) {
+export default function FinanzasSection({
+  temporadaActiva,
+  temporadas,
+  gastosIniciales,
+  ingresosIniciales,
+}: Props) {
+  const [seleccionada, setSeleccionada] = useState<any>(temporadaActiva)
+  const [gastos, setGastos] = useState<Gasto[]>(gastosIniciales)
+  const [ingresos, setIngresos] = useState<Ingreso[]>(ingresosIniciales)
+  const [cargando, setCargando] = useState(false)
+
+  const totalGastos = gastos.reduce((acc, g) => acc + Number(g.importe), 0)
+  const totalIngresos = ingresos.reduce((acc, i) => acc + Number(i.importe), 0)
   const balance = totalIngresos - totalGastos
-  const balancePositive = balance >= 0
   const fmt = (n: number) => n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+
+  async function cambiar(t: any) {
+    if (t.id === seleccionada?.id) return
+    setCargando(true)
+    setSeleccionada(t)
+    const s = createClient()
+    const [{ data: g }, { data: i }] = await Promise.all([
+      s.from('gastos').select('*').eq('temporada_id', t.id).order('fecha', { ascending: false }),
+      s.from('ingresos').select('*').eq('temporada_id', t.id).order('fecha', { ascending: false }),
+    ])
+    setGastos(g ?? [])
+    setIngresos(i ?? [])
+    setCargando(false)
+  }
 
   return (
     <section id="finanzas" style={{ background: 'linear-gradient(to bottom, var(--bg-deep), var(--bg-dark))' }}>
@@ -25,125 +53,144 @@ export default function FinanzasSection({ temporada, temporadas, gastos, ingreso
         <div className="section-divider" />
       </div>
 
-      {/* Season selector */}
+      {/* Selector temporadas */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '3rem', flexWrap: 'wrap' }}>
-        {temporadas.map((t: any) => (
-          <div key={t.id} style={{
-            padding: '0.5rem 1.2rem',
-            fontFamily: "'Space Mono', monospace", fontSize: '0.75rem',
-            letterSpacing: '0.1em', cursor: 'default',
-            border: '1px solid',
-            borderColor: t.id === temporada?.id ? 'var(--gold)' : 'rgba(200,160,74,0.2)',
-            background: t.id === temporada?.id ? 'var(--gold)' : 'transparent',
-            color: t.id === temporada?.id ? 'var(--bg-deep)' : 'var(--cream-dim)',
-            fontWeight: t.id === temporada?.id ? 700 : 400,
-          }}>
-            Temporada {t.año}
-          </div>
-        ))}
+        {temporadas.map((t: any) => {
+          const activa = t.id === seleccionada?.id
+          return (
+            <button
+              key={t.id}
+              onClick={() => cambiar(t)}
+              style={{
+                padding: '0.5rem 1.2rem',
+                fontFamily: "'Space Mono', monospace",
+                fontSize: '0.75rem',
+                letterSpacing: '0.1em',
+                cursor: 'pointer',
+                border: `1px solid ${activa ? 'var(--gold)' : 'rgba(200,160,74,0.2)'}`,
+                background: activa ? 'var(--gold)' : 'transparent',
+                color: activa ? 'var(--bg-deep)' : 'var(--cream-dim)',
+                fontWeight: activa ? 700 : 400,
+                transition: 'all 0.25s',
+              }}
+            >
+              Temporada {t.año}
+            </button>
+          )
+        })}
       </div>
 
-      {/* Panels */}
-      <div className="finance-grid">
+      {/* Cargando */}
+      {cargando && (
+        <div style={{ textAlign: 'center', padding: '3rem', fontFamily: "'Space Mono', monospace", fontSize: '0.75rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold)', opacity: 0.7 }}>
+          Cargando {seleccionada?.año}...
+        </div>
+      )}
 
-        {/* GASTOS */}
-        <div style={{ border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(to right, var(--red-loss), transparent)' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', paddingBottom: '1.2rem', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: '0.8rem' }}>
-            <div>
-              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--red-loss-light)', marginBottom: '0.4rem' }}>
-                Gastos · {temporada?.año}
-              </div>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(2rem, 5vw, 2.8rem)', fontWeight: 700, lineHeight: 1, color: 'var(--red-loss-light)' }}>
-                <sup style={{ fontSize: '1rem', verticalAlign: 'super', fontWeight: 400 }}>−</sup>{fmt(totalGastos)} €
-              </div>
-            </div>
-            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.3rem 0.7rem', fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.08em', background: 'rgba(192,57,43,0.15)', color: 'var(--red-loss-light)', border: '1px solid rgba(192,57,43,0.3)' }}>
-              ↑ Inversión
-            </span>
-          </div>
+      {!cargando && (
+        <>
+          <div className="finance-grid">
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
-            {gastos.length === 0 ? (
-              <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--cream-dim)', fontStyle: 'italic', opacity: 0.5 }}>Sin gastos registrados</div>
-            ) : gastos.map(g => (
-              <div key={g.id} className="finance-item-grid" style={{ display: 'grid', gridTemplateColumns: '44px 1fr auto', gap: '0.8rem', alignItems: 'center', padding: '0.8rem', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ width: 38, height: 38, background: 'rgba(192,57,43,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>{g.emoji}</div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--cream)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.nombre}</div>
-                  <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.58rem', letterSpacing: '0.08em', color: 'var(--cream-dim)', marginTop: '0.1rem', textTransform: 'uppercase' }}>
-                    {new Date(g.fecha).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })} · {g.categoria}
+            {/* GASTOS */}
+            <div style={{ border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(to right, var(--red-loss), transparent)' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', paddingBottom: '1.2rem', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: '0.8rem' }}>
+                <div>
+                  <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--red-loss-light)', marginBottom: '0.4rem' }}>
+                    Gastos · {seleccionada?.año}
+                  </div>
+                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(2rem, 5vw, 2.8rem)', fontWeight: 700, lineHeight: 1, color: 'var(--red-loss-light)' }}>
+                    <sup style={{ fontSize: '1rem', verticalAlign: 'super', fontWeight: 400 }}>−</sup>{fmt(totalGastos)} €
                   </div>
                 </div>
-                <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--red-loss-light)', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  −{fmt(Number(g.importe))} €
-                </div>
+                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.3rem 0.7rem', fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', background: 'rgba(192,57,43,0.15)', color: 'var(--red-loss-light)', border: '1px solid rgba(192,57,43,0.3)' }}>
+                  ↑ Inversión
+                </span>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* INGRESOS */}
-        <div style={{ border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(to right, var(--green-gain), transparent)' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', paddingBottom: '1.2rem', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: '0.8rem' }}>
-            <div>
-              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--green-gain-light)', marginBottom: '0.4rem' }}>
-                Ingresos · {temporada?.año}
-              </div>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(2rem, 5vw, 2.8rem)', fontWeight: 700, lineHeight: 1, color: 'var(--green-gain-light)' }}>
-                <sup style={{ fontSize: '1rem', verticalAlign: 'super', fontWeight: 400 }}>+</sup>{fmt(totalIngresos)} €
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+                {gastos.length === 0 ? (
+                  <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--cream-dim)', fontStyle: 'italic', opacity: 0.5 }}>Sin gastos registrados</div>
+                ) : gastos.map(g => (
+                  <div key={g.id} className="finance-item-grid" style={{ display: 'grid', gridTemplateColumns: '44px 1fr auto', gap: '0.8rem', alignItems: 'center', padding: '0.8rem', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ width: 38, height: 38, background: 'rgba(192,57,43,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>{g.emoji}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--cream)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.nombre}</div>
+                      <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.58rem', color: 'var(--cream-dim)', marginTop: '0.1rem', textTransform: 'uppercase' }}>
+                        {new Date(g.fecha).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })} · {g.categoria}
+                      </div>
+                    </div>
+                    <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--red-loss-light)', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      −{fmt(Number(g.importe))} €
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.3rem 0.7rem', fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.08em', background: 'rgba(39,174,96,0.15)', color: 'var(--green-gain-light)', border: '1px solid rgba(39,174,96,0.3)' }}>
-              ↳ Cosecha pendiente
-            </span>
-          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
-            {ingresos.length === 0 ? (
-              <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--cream-dim)', fontStyle: 'italic', opacity: 0.5, border: '1px dashed rgba(200,160,74,0.2)' }}>
-                🫒 La cosecha de noviembre llenará esta columna
-              </div>
-            ) : ingresos.map(i => (
-              <div key={i.id} className="finance-item-grid" style={{ display: 'grid', gridTemplateColumns: '44px 1fr auto', gap: '0.8rem', alignItems: 'center', padding: '0.8rem', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ width: 38, height: 38, background: 'rgba(39,174,96,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>{i.emoji}</div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--cream)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.nombre}</div>
-                  <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.58rem', letterSpacing: '0.08em', color: 'var(--cream-dim)', marginTop: '0.1rem', textTransform: 'uppercase' }}>
-                    {new Date(i.fecha).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}
-                    {i.kilos_aceituna ? ` · ${Number(i.kilos_aceituna).toLocaleString('es-ES')} kg` : ''}
+            {/* INGRESOS */}
+            <div style={{ border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(to right, var(--green-gain), transparent)' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', paddingBottom: '1.2rem', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: '0.8rem' }}>
+                <div>
+                  <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--green-gain-light)', marginBottom: '0.4rem' }}>
+                    Ingresos · {seleccionada?.año}
+                  </div>
+                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(2rem, 5vw, 2.8rem)', fontWeight: 700, lineHeight: 1, color: 'var(--green-gain-light)' }}>
+                    <sup style={{ fontSize: '1rem', verticalAlign: 'super', fontWeight: 400 }}>+</sup>{fmt(totalIngresos)} €
                   </div>
                 </div>
-                <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--green-gain-light)', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  +{fmt(Number(i.importe))} €
-                </div>
+                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.3rem 0.7rem', fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', background: 'rgba(39,174,96,0.15)', color: 'var(--green-gain-light)', border: '1px solid rgba(39,174,96,0.3)' }}>
+                  ↳ {ingresos.length === 0 ? 'Pendiente' : 'Registrado'}
+                </span>
               </div>
-            ))}
-          </div>
-        </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+                {ingresos.length === 0 ? (
+                  <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--cream-dim)', fontStyle: 'italic', opacity: 0.5, border: '1px dashed rgba(200,160,74,0.2)' }}>
+                    🫒 Los ingresos de esta temporada aparecerán aquí
+                  </div>
+                ) : ingresos.map(i => (
+                  <div key={i.id} className="finance-item-grid" style={{ display: 'grid', gridTemplateColumns: '44px 1fr auto', gap: '0.8rem', alignItems: 'center', padding: '0.8rem', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ width: 38, height: 38, background: 'rgba(39,174,96,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>{i.emoji}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--cream)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.nombre}</div>
+                      <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.58rem', color: 'var(--cream-dim)', marginTop: '0.1rem', textTransform: 'uppercase' }}>
+                        {new Date(i.fecha).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}
+                        {i.kilos_aceituna ? ` · ${Number(i.kilos_aceituna).toLocaleString('es-ES')} kg` : ''}
+                      </div>
+                    </div>
+                    <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.85rem', fontWeight: 700, color: 'var(--green-gain-light)', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      +{fmt(Number(i.importe))} €
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-      </div>
+          </div>
 
-      {/* Balance */}
-      <div className="balance-section-wrap" style={{ marginTop: '2rem', padding: '1.5rem', background: 'var(--bg-card2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
-        <div>
-          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--cream-dim)', marginBottom: '0.4rem' }}>Balance actual · {temporada?.año}</div>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem, 4vw, 2.2rem)', fontWeight: 700, color: balancePositive ? 'var(--green-gain-light)' : 'var(--red-loss-light)' }}>
-            {balancePositive ? '+' : '−'}{fmt(Math.abs(balance))} €
+          {/* Balance */}
+          <div className="balance-section-wrap" style={{ marginTop: '2rem', padding: '1.5rem', background: 'var(--bg-card2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
+            <div>
+              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--cream-dim)', marginBottom: '0.4rem' }}>Balance · {seleccionada?.año}</div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem, 4vw, 2.2rem)', fontWeight: 700, color: balance >= 0 ? 'var(--green-gain-light)' : 'var(--red-loss-light)' }}>
+                {balance >= 0 ? '+' : '−'}{fmt(Math.abs(balance))} €
+              </div>
+            </div>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.max(Math.min((totalIngresos / (totalGastos || 1)) * 100, 100), totalGastos > 0 ? 3 : 0)}%`, background: 'linear-gradient(to right, var(--red-loss), var(--green-gain))', transition: 'width 0.8s ease' }} />
+              </div>
+              <div style={{ fontSize: '0.82rem', fontStyle: 'italic', color: 'var(--cream-dim)', marginTop: '0.4rem' }}>
+                {totalIngresos === 0 ? 'Los ingresos cerrarán el balance' : `${fmt(totalIngresos)} € ingresados de ${fmt(totalGastos)} € invertidos`}
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--cream-dim)', marginBottom: '0.4rem' }}>Total ingresos</div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem, 4vw, 2.2rem)', fontWeight: 700, color: 'var(--green-gain-light)' }}>+{fmt(totalIngresos)} €</div>
+            </div>
           </div>
-        </div>
-        <div style={{ flex: 1, minWidth: 150 }}>
-          <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${Math.min((totalIngresos / (totalGastos || 1)) * 100, 100)}%`, background: 'linear-gradient(to right, var(--red-loss), var(--green-gain))', transition: 'width 0.8s ease' }} />
-          </div>
-          <div style={{ fontSize: '0.82rem', fontStyle: 'italic', color: 'var(--cream-dim)', marginTop: '0.4rem' }}>La cosecha de noviembre cerrará el círculo</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--cream-dim)', marginBottom: '0.4rem' }}>Proyección cosecha</div>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem, 4vw, 2.2rem)', fontWeight: 700, color: 'var(--green-gain-light)' }}>+8.000 €</div>
-        </div>
-      </div>
+        </>
+      )}
     </section>
   )
 }
