@@ -11,33 +11,31 @@ type Tab = 'gastos' | 'ingresos' | 'hitos' | 'temporadas' | 'video'
 export default function AdminPage() {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('gastos')
-  const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState('')
+  const [temporadas, setTemporadas] = useState<any[]>([])
+  const [temporadaId, setTemporadaId] = useState<number | null>(null)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getSession().then(({ data }) => {
+    const s = createClient()
+    s.auth.getSession().then(({ data }) => {
       if (!data.session) router.push('/admin/login')
+    })
+    s.from('temporadas').select('*').order('año').then(({ data }) => {
+      setTemporadas(data ?? [])
+      const activa = (data ?? []).find((t: any) => t.activa)
+      if (activa) setTemporadaId(activa.id)
     })
   }, [])
 
-  const [gasto, setGasto] = useState({
-    nombre: '', importe: '', categoria: 'equipo',
-    emoji: '📌', fecha: new Date().toISOString().split('T')[0], notas: ''
-  })
-
-  const [ingreso, setIngreso] = useState({
-    nombre: '', importe: '', categoria: 'cosecha',
-    emoji: '💰', fecha: new Date().toISOString().split('T')[0],
-    kilos_aceituna: '', precio_kilo: '', notas: ''
-  })
+  const [gasto, setGasto] = useState({ nombre: '', importe: '', categoria: 'equipo', emoji: '📌', fecha: new Date().toISOString().split('T')[0], notas: '' })
+  const [ingreso, setIngreso] = useState({ nombre: '', importe: '', categoria: 'cosecha', emoji: '💰', fecha: new Date().toISOString().split('T')[0], kilos_aceituna: '', precio_kilo: '', notas: '' })
 
   async function saveGasto(e: React.FormEvent) {
     e.preventDefault(); setLoading(true)
     const s = createClient()
-    const { data: temp } = await s.from('temporadas').select('id').eq('activa', true).single()
     const { error } = await s.from('gastos').insert({
-      temporada_id: temp?.id, nombre: gasto.nombre,
+      temporada_id: temporadaId, nombre: gasto.nombre,
       importe: parseFloat(gasto.importe), categoria: gasto.categoria,
       emoji: gasto.emoji, fecha: gasto.fecha, notas: gasto.notas || null
     })
@@ -49,9 +47,8 @@ export default function AdminPage() {
   async function saveIngreso(e: React.FormEvent) {
     e.preventDefault(); setLoading(true)
     const s = createClient()
-    const { data: temp } = await s.from('temporadas').select('id').eq('activa', true).single()
     const { error } = await s.from('ingresos').insert({
-      temporada_id: temp?.id, nombre: ingreso.nombre,
+      temporada_id: temporadaId, nombre: ingreso.nombre,
       importe: parseFloat(ingreso.importe), categoria: ingreso.categoria,
       emoji: ingreso.emoji, fecha: ingreso.fecha,
       kilos_aceituna: ingreso.kilos_aceituna ? parseFloat(ingreso.kilos_aceituna) : null,
@@ -93,6 +90,17 @@ export default function AdminPage() {
             <form onSubmit={saveGasto} style={{ marginBottom: '3rem' }}>
               <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1.2rem' }}>+ Añadir gasto</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem', marginBottom: '1.2rem' }}>
+
+                {/* Selector de temporada */}
+                <div style={{ gridColumn: '1/-1' }}>
+                  <label style={lbl}>Temporada *</label>
+                  <select style={inp} value={temporadaId ?? ''} onChange={e => setTemporadaId(parseInt(e.target.value))}>
+                    {temporadas.map(t => (
+                      <option key={t.id} value={t.id}>{t.año}{t.activa ? ' (activa)' : ''}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Nombre *</label><input style={inp} required value={gasto.nombre} onChange={e => setGasto({...gasto, nombre: e.target.value})} placeholder="Ej: Gasolina semana 12" /></div>
                 <div><label style={lbl}>Importe (€) *</label><input style={inp} type="number" step="0.01" min="0" required value={gasto.importe} onChange={e => setGasto({...gasto, importe: e.target.value})} placeholder="0.00" /></div>
                 <div><label style={lbl}>Fecha *</label><input style={inp} type="date" required value={gasto.fecha} onChange={e => setGasto({...gasto, fecha: e.target.value})} /></div>
@@ -116,6 +124,17 @@ export default function AdminPage() {
             <form onSubmit={saveIngreso} style={{ marginBottom: '3rem' }}>
               <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#27ae60', marginBottom: '1.2rem' }}>+ Añadir ingreso</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem', marginBottom: '1.2rem' }}>
+
+                {/* Selector de temporada */}
+                <div style={{ gridColumn: '1/-1' }}>
+                  <label style={lbl}>Temporada *</label>
+                  <select style={inp} value={temporadaId ?? ''} onChange={e => setTemporadaId(parseInt(e.target.value))}>
+                    {temporadas.map(t => (
+                      <option key={t.id} value={t.id}>{t.año}{t.activa ? ' (activa)' : ''}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Nombre *</label><input style={inp} required value={ingreso.nombre} onChange={e => setIngreso({...ingreso, nombre: e.target.value})} placeholder="Ej: Venta aceituna cooperativa Úbeda" /></div>
                 <div><label style={lbl}>Importe total (€) *</label><input style={inp} type="number" step="0.01" min="0" required value={ingreso.importe} onChange={e => setIngreso({...ingreso, importe: e.target.value})} /></div>
                 <div><label style={lbl}>Fecha *</label><input style={inp} type="date" required value={ingreso.fecha} onChange={e => setIngreso({...ingreso, fecha: e.target.value})} /></div>
@@ -130,7 +149,7 @@ export default function AdminPage() {
         )}
 
         {tab === 'hitos' && <HitosTab onMsg={setMsg} />}
-        {tab === 'temporadas' && <TemporadasTab onMsg={setMsg} />}
+        {tab === 'temporadas' && <TemporadasTab onMsg={setMsg} onTemporadasChange={setTemporadas} />}
         {tab === 'video' && <VideoTab onMsg={setMsg} />}
       </div>
     </div>
@@ -139,13 +158,19 @@ export default function AdminPage() {
 
 function GastosLista({ onMsg }: { onMsg: (m: string) => void }) {
   const [gastos, setGastos] = useState<any[]>([])
-  useEffect(() => { cargar() }, [])
+  const [temporadas, setTemporadas] = useState<any[]>([])
+  useEffect(() => {
+    cargar()
+    const s = createClient()
+    s.from('temporadas').select('*').order('año').then(({ data }) => setTemporadas(data ?? []))
+  }, [])
   async function cargar() { const s = createClient(); const { data } = await s.from('gastos').select('*').order('fecha', { ascending: false }); setGastos(data ?? []) }
   async function eliminar(id: number) {
     if (!confirm('¿Eliminar este gasto?')) return
     const s = createClient(); await s.from('gastos').delete().eq('id', id)
     onMsg('✓ Gasto eliminado'); cargar(); setTimeout(() => onMsg(''), 3000)
   }
+  const getAño = (tid: number) => temporadas.find(t => t.id === tid)?.año ?? '—'
   return (
     <div>
       <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>Gastos registrados ({gastos.length})</div>
@@ -155,7 +180,7 @@ function GastosLista({ onMsg }: { onMsg: (m: string) => void }) {
             <span style={{ fontSize: '1.3rem' }}>{g.emoji}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f0e6c8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.nombre}</div>
-              <div style={{ fontSize: '0.7rem', color: '#b8a87a', fontFamily: 'monospace' }}>{g.fecha} · {g.categoria}</div>
+              <div style={{ fontSize: '0.7rem', color: '#b8a87a', fontFamily: 'monospace' }}>{g.fecha} · {g.categoria} · <span style={{ color: '#c8a04a' }}>{getAño(g.temporada_id)}</span></div>
             </div>
             <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#e74c3c', fontWeight: 700, whiteSpace: 'nowrap' }}>−{Number(g.importe).toLocaleString('es-ES')} €</div>
             <button onClick={() => eliminar(g.id)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.3rem 0.7rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', flexShrink: 0 }}>✕</button>
@@ -169,13 +194,19 @@ function GastosLista({ onMsg }: { onMsg: (m: string) => void }) {
 
 function IngresosLista({ onMsg }: { onMsg: (m: string) => void }) {
   const [ingresos, setIngresos] = useState<any[]>([])
-  useEffect(() => { cargar() }, [])
+  const [temporadas, setTemporadas] = useState<any[]>([])
+  useEffect(() => {
+    cargar()
+    const s = createClient()
+    s.from('temporadas').select('*').order('año').then(({ data }) => setTemporadas(data ?? []))
+  }, [])
   async function cargar() { const s = createClient(); const { data } = await s.from('ingresos').select('*').order('fecha', { ascending: false }); setIngresos(data ?? []) }
   async function eliminar(id: number) {
     if (!confirm('¿Eliminar este ingreso?')) return
     const s = createClient(); await s.from('ingresos').delete().eq('id', id)
     onMsg('✓ Ingreso eliminado'); cargar(); setTimeout(() => onMsg(''), 3000)
   }
+  const getAño = (tid: number) => temporadas.find(t => t.id === tid)?.año ?? '—'
   return (
     <div>
       <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>Ingresos registrados ({ingresos.length})</div>
@@ -185,7 +216,7 @@ function IngresosLista({ onMsg }: { onMsg: (m: string) => void }) {
             <span style={{ fontSize: '1.3rem' }}>{i.emoji}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f0e6c8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.nombre}</div>
-              <div style={{ fontSize: '0.7rem', color: '#b8a87a', fontFamily: 'monospace' }}>{i.fecha} · {i.categoria}</div>
+              <div style={{ fontSize: '0.7rem', color: '#b8a87a', fontFamily: 'monospace' }}>{i.fecha} · {i.categoria} · <span style={{ color: '#c8a04a' }}>{getAño(i.temporada_id)}</span></div>
             </div>
             <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#2ecc71', fontWeight: 700, whiteSpace: 'nowrap' }}>+{Number(i.importe).toLocaleString('es-ES')} €</div>
             <button onClick={() => eliminar(i.id)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.3rem 0.7rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', flexShrink: 0 }}>✕</button>
@@ -197,7 +228,7 @@ function IngresosLista({ onMsg }: { onMsg: (m: string) => void }) {
   )
 }
 
-function TemporadasTab({ onMsg }: { onMsg: (m: string) => void }) {
+function TemporadasTab({ onMsg, onTemporadasChange }: { onMsg: (m: string) => void, onTemporadasChange: (t: any[]) => void }) {
   const [temporadas, setTemporadas] = useState<any[]>([])
   const [nuevoAño, setNuevoAño] = useState(new Date().getFullYear() + 1)
   const [loading, setLoading] = useState(false)
@@ -208,48 +239,34 @@ function TemporadasTab({ onMsg }: { onMsg: (m: string) => void }) {
     const s = createClient()
     const { data } = await s.from('temporadas').select('*').order('año')
     setTemporadas(data ?? [])
+    onTemporadasChange(data ?? [])
   }
 
   async function añadir(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault(); setLoading(true)
     const s = createClient()
-    const existe = temporadas.find(t => t.año === nuevoAño)
-    if (existe) { onMsg('❌ Ya existe una temporada para ese año'); setLoading(false); setTimeout(() => onMsg(''), 3000); return }
+    if (temporadas.find(t => t.año === nuevoAño)) { onMsg('❌ Ya existe esa temporada'); setLoading(false); setTimeout(() => onMsg(''), 3000); return }
     const { error } = await s.from('temporadas').insert({ año: nuevoAño, activa: false })
     if (error) onMsg('❌ Error: ' + error.message)
     else { onMsg('✓ Temporada ' + nuevoAño + ' creada'); cargar() }
     setLoading(false); setTimeout(() => onMsg(''), 3000)
   }
 
-  async function activar(id: number, año: number) {
-    if (!confirm(`¿Activar la temporada ${año}? Los gastos e ingresos nuevos se añadirán a esta temporada.`)) return
-    const s = createClient()
-    // Desactivar todas
-    await s.from('temporadas').update({ activa: false }).neq('id', 0)
-    // Activar la seleccionada
-    await s.from('temporadas').update({ activa: true }).eq('id', id)
-    onMsg('✓ Temporada ' + año + ' activada')
-    cargar(); setTimeout(() => onMsg(''), 3000)
-  }
-
   async function eliminar(id: number, año: number) {
-    if (!confirm(`¿Eliminar la temporada ${año}? Se borrarán también todos sus gastos e ingresos.`)) return
+    if (!confirm(`¿Eliminar temporada ${año} y todos sus datos?`)) return
     const s = createClient()
     await s.from('temporadas').delete().eq('id', id)
-    onMsg('✓ Temporada ' + año + ' eliminada')
-    cargar(); setTimeout(() => onMsg(''), 3000)
+    onMsg('✓ Temporada ' + año + ' eliminada'); cargar(); setTimeout(() => onMsg(''), 3000)
   }
 
   const inp = { background: '#1b2415', border: '1px solid rgba(200,160,74,0.3)', color: '#f0e6c8', padding: '0.7rem 1rem', fontFamily: 'inherit', fontSize: '0.95rem', outline: 'none' } as React.CSSProperties
 
   return (
     <div>
-      {/* Formulario nueva temporada */}
       <form onSubmit={añadir} style={{ marginBottom: '3rem', padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(200,160,74,0.2)' }}>
-        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1.2rem' }}>+ Nueva temporada</div>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1rem' }}>+ Nueva temporada</div>
         <p style={{ color: '#b8a87a', fontStyle: 'italic', fontSize: '0.9rem', marginBottom: '1.2rem', lineHeight: 1.7 }}>
-          Crea una nueva temporada al inicio de cada año. Cada temporada tiene sus propios gastos e ingresos independientes.
+          Crea una nueva temporada al inicio de cada año. Los gastos e ingresos de cada temporada son independientes — elige la temporada al añadir cada registro.
         </p>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div>
@@ -262,29 +279,16 @@ function TemporadasTab({ onMsg }: { onMsg: (m: string) => void }) {
         </div>
       </form>
 
-      {/* Lista de temporadas */}
-      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>
-        Temporadas ({temporadas.length})
-      </div>
+      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>Temporadas ({temporadas.length})</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
         {temporadas.map(t => (
           <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.2rem 1.5rem', background: t.activa ? 'rgba(200,160,74,0.08)' : '#1b2415', border: `1px solid ${t.activa ? 'rgba(200,160,74,0.5)' : 'rgba(200,160,74,0.15)'}` }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.3rem', fontWeight: 700, color: t.activa ? '#c8a04a' : '#f0e6c8' }}>
-                Temporada {t.año}
-              </div>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.3rem', fontWeight: 700, color: t.activa ? '#c8a04a' : '#f0e6c8' }}>Temporada {t.año}</div>
               <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.1em', color: t.activa ? '#c8a04a' : '#b8a87a', marginTop: '0.2rem' }}>
-                {t.activa ? '● ACTIVA — los gastos/ingresos nuevos van aquí' : '○ Inactiva'}
+                {t.activa ? '● Activa — aparece por defecto en la web' : '○ Visible en la web (botón de temporada)'}
               </div>
             </div>
-            {!t.activa && (
-              <button onClick={() => activar(t.id, t.año)} style={{ background: 'rgba(200,160,74,0.1)', border: '1px solid rgba(200,160,74,0.3)', color: '#c8a04a', padding: '0.4rem 1rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase', flexShrink: 0 }}>
-                Activar
-              </button>
-            )}
-            {t.activa && (
-              <span style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: '#c8a04a', letterSpacing: '0.1em', flexShrink: 0 }}>✓ Activa</span>
-            )}
             {!t.activa && (
               <button onClick={() => eliminar(t.id, t.año)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.4rem 0.7rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', flexShrink: 0 }}>✕</button>
             )}
