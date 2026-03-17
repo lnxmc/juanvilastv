@@ -9,8 +9,11 @@ interface Props {
 
 export default function DonacionesSection({ bizumNumero, paypalUsuario, contactoEmail }: Props) {
   const [selectedAmount, setSelectedAmount] = useState(10)
+  const [customAmount, setCustomAmount] = useState('')
   const [bizumCopied, setBizumCopied] = useState(false)
   const amounts = [5, 10, 25, 50, 100]
+
+  const finalAmount = customAmount ? parseFloat(customAmount) : selectedAmount
 
   function copyBizum() {
     if (!bizumNumero) return
@@ -37,20 +40,53 @@ export default function DonacionesSection({ bizumNumero, paypalUsuario, contacto
         </p>
 
         {/* Amounts */}
-        <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', marginBottom: '2rem', flexWrap: 'wrap', padding: '0 1rem' }}>
+        <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', marginBottom: '1rem', flexWrap: 'wrap', padding: '0 1rem' }}>
           {amounts.map(a => (
-            <button key={a} onClick={() => setSelectedAmount(a)} style={{
+            <button key={a} onClick={() => { setSelectedAmount(a); setCustomAmount('') }} style={{
               padding: '0.5rem 1.2rem',
               border: '1px solid',
-              borderColor: selectedAmount === a ? 'var(--gold)' : 'rgba(200,160,74,0.2)',
-              background: selectedAmount === a ? 'var(--gold)' : 'transparent',
-              color: selectedAmount === a ? 'var(--bg-deep)' : 'var(--cream-dim)',
+              borderColor: selectedAmount === a && !customAmount ? 'var(--gold)' : 'rgba(200,160,74,0.2)',
+              background: selectedAmount === a && !customAmount ? 'var(--gold)' : 'transparent',
+              color: selectedAmount === a && !customAmount ? 'var(--bg-deep)' : 'var(--cream-dim)',
               fontFamily: "'Space Mono', monospace", fontSize: '0.8rem',
               cursor: 'pointer', letterSpacing: '0.1em',
-              fontWeight: selectedAmount === a ? 700 : 400,
+              fontWeight: selectedAmount === a && !customAmount ? 700 : 400,
               transition: 'all 0.25s',
             }}>{a} €</button>
           ))}
+        </div>
+
+        {/* Campo cantidad personalizada */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '2.5rem' }}>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            value={customAmount}
+            onChange={e => setCustomAmount(e.target.value)}
+            placeholder="Otra cantidad..."
+            style={{
+              background: customAmount ? 'rgba(200,160,74,0.08)' : 'transparent',
+              border: `1px solid ${customAmount ? 'var(--gold)' : 'rgba(200,160,74,0.2)'}`,
+              color: 'var(--cream)',
+              padding: '0.5rem 1rem',
+              fontFamily: "'Space Mono', monospace",
+              fontSize: '0.8rem',
+              letterSpacing: '0.1em',
+              outline: 'none',
+              width: 160,
+              textAlign: 'center',
+              transition: 'all 0.25s',
+            }}
+          />
+          {customAmount && (
+            <span style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.75rem', color: 'var(--gold)', letterSpacing: '0.1em' }}>€</span>
+          )}
+        </div>
+
+        {/* Resumen cantidad seleccionada */}
+        <div style={{ marginBottom: '2rem', fontFamily: "'Space Mono', monospace", fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--gold)', opacity: 0.8 }}>
+          Donando → {finalAmount} €
         </div>
 
         {/* Cards */}
@@ -58,7 +94,7 @@ export default function DonacionesSection({ bizumNumero, paypalUsuario, contacto
 
           {/* PayPal */}
           {paypalUsuario && (
-            <a href={`https://paypal.me/${paypalUsuario}`} target="_blank" style={{
+            <a href={`https://paypal.me/${paypalUsuario}/${finalAmount}EUR`} target="_blank" style={{
               background: 'var(--bg-card)', border: '1px solid var(--border)',
               padding: '2rem 1.5rem', width: 'clamp(160px, 28vw, 220px)', textAlign: 'center',
               textDecoration: 'none', cursor: 'pointer', display: 'flex',
@@ -69,7 +105,7 @@ export default function DonacionesSection({ bizumNumero, paypalUsuario, contacto
             onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}>
               <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(0,112,186,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>💳</div>
               <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.72rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--cream)', fontWeight: 700 }}>PayPal</div>
-              <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--cream-dim)', lineHeight: 1.5 }}>Pago rápido con tarjeta</div>
+              <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--cream-dim)', lineHeight: 1.5 }}>Pagar {finalAmount} € con tarjeta</div>
             </a>
           )}
 
@@ -87,14 +123,14 @@ export default function DonacionesSection({ bizumNumero, paypalUsuario, contacto
               <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(28,196,162,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>📱</div>
               <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.72rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--cream)', fontWeight: 700 }}>Bizum</div>
               <div style={{ fontSize: '0.8rem', fontStyle: 'italic', color: bizumCopied ? 'var(--green-gain-light)' : 'var(--cream-dim)', lineHeight: 1.5, transition: 'color 0.3s' }}>
-                {bizumCopied ? '✓ Número copiado' : 'Toca para copiar'}
+                {bizumCopied ? '✓ Número copiado' : `Enviar ${finalAmount} €`}
               </div>
             </div>
           )}
 
           {/* Contacto */}
           {contactoEmail && (
-            <a href={`mailto:${contactoEmail}?subject=Quiero%20apoyarte`} style={{
+            <a href={`mailto:${contactoEmail}?subject=Quiero%20apoyarte%20con%20${finalAmount}EUR`} style={{
               background: 'var(--bg-card)', border: '1px solid var(--border)',
               padding: '2rem 1.5rem', width: 'clamp(160px, 28vw, 220px)', textAlign: 'center',
               textDecoration: 'none', cursor: 'pointer', display: 'flex',
