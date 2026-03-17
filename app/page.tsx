@@ -4,6 +4,7 @@ import HeroSection from '@/components/HeroSection'
 import FinanzasSection from '@/components/FinanzasSection'
 import RecorridoSection from '@/components/RecorridoSection'
 import DonacionesSection from '@/components/DonacionesSection'
+import PatreonSection from '@/components/PatreonSection'
 
 export const revalidate = 60
 
@@ -33,12 +34,18 @@ export default async function Home() {
   const { data: configs } = await supabase
     .from('configuracion').select('clave, valor')
 
+  const { data: patreonContenidos } = await supabase
+    .from('patreon_contenido').select('*')
+    .eq('activo', true).order('orden')
+
   const cfg = (clave: string) => configs?.find(c => c.clave === clave)?.valor ?? ''
 
   const videoUrl = cfg('video_youtube')
   const bizumNumero = cfg('bizum_numero')
   const paypalUsuario = cfg('paypal_usuario')
   const contactoEmail = cfg('contacto_email')
+  const patreonUrl = cfg('patreon_url')
+  const patreonTexto = cfg('patreon_texto')
 
   const totalGastosInicial = gastos?.reduce((acc, g) => acc + Number(g.importe), 0) ?? 0
   const totalIngresosInicial = ingresos?.reduce((acc, i) => acc + Number(i.importe), 0) ?? 0
@@ -50,6 +57,7 @@ export default async function Home() {
         <ul className="nav-links">
           <li><a href="#finanzas">Temporada</a></li>
           <li><a href="#recorrido">Recorrido</a></li>
+          <li><a href="#patreon">Patreon</a></li>
           <li><a href="#donaciones">Apoyar</a></li>
           <li><a href="https://youtube.com/@juanvilas" target="_blank">YouTube ↗</a></li>
         </ul>
@@ -71,6 +79,11 @@ export default async function Home() {
           totalIngresosInicial={totalIngresosInicial}
         />
         <RecorridoSection hitos={hitos ?? []} />
+        <PatreonSection
+          patreonUrl={patreonUrl}
+          patreonTexto={patreonTexto}
+          contenidos={patreonContenidos ?? []}
+        />
         <DonacionesSection
           bizumNumero={bizumNumero}
           paypalUsuario={paypalUsuario}
@@ -83,6 +96,7 @@ export default async function Home() {
         <div className="footer-links">
           <a href="#finanzas">Temporada</a>
           <a href="#recorrido">Recorrido</a>
+          <a href="#patreon">Patreon</a>
           <a href="https://youtube.com" target="_blank">YouTube</a>
           <a href="#donaciones">Donar</a>
         </div>

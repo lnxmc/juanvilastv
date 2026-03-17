@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 
-type Tab = 'gastos' | 'ingresos' | 'hitos' | 'temporadas' | 'donaciones' | 'video'
+type Tab = 'gastos' | 'ingresos' | 'hitos' | 'temporadas' | 'donaciones' | 'patreon' | 'video'
 
 export default function AdminPage() {
   const router = useRouter()
@@ -33,8 +33,7 @@ export default function AdminPage() {
 
   async function saveGasto(e: React.FormEvent) {
     e.preventDefault(); setLoading(true)
-    const s = createClient()
-    const { error } = await s.from('gastos').insert({
+    const { error } = await createClient().from('gastos').insert({
       temporada_id: temporadaId, nombre: gasto.nombre,
       importe: parseFloat(gasto.importe), categoria: gasto.categoria,
       emoji: gasto.emoji, fecha: gasto.fecha, notas: gasto.notas || null
@@ -46,8 +45,7 @@ export default function AdminPage() {
 
   async function saveIngreso(e: React.FormEvent) {
     e.preventDefault(); setLoading(true)
-    const s = createClient()
-    const { error } = await s.from('ingresos').insert({
+    const { error } = await createClient().from('ingresos').insert({
       temporada_id: temporadaId, nombre: ingreso.nombre,
       importe: parseFloat(ingreso.importe), categoria: ingreso.categoria,
       emoji: ingreso.emoji, fecha: ingreso.fecha,
@@ -62,7 +60,7 @@ export default function AdminPage() {
 
   const inp = { background: '#1b2415', border: '1px solid rgba(200,160,74,0.3)', color: '#f0e6c8', padding: '0.7rem 1rem', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', outline: 'none' } as React.CSSProperties
   const lbl = { display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: '#b8a87a', marginBottom: '0.4rem', fontFamily: 'monospace' }
-  const tabBtn = (t: Tab) => ({ padding: '0.5rem 1rem', fontFamily: 'monospace', fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase' as const, cursor: 'pointer', border: '1px solid rgba(200,160,74,0.3)', background: tab === t ? '#c8a04a' : 'transparent', color: tab === t ? '#0e120b' : '#b8a87a' })
+  const tabBtn = (t: Tab) => ({ padding: '0.4rem 0.9rem', fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.08em', textTransform: 'uppercase' as const, cursor: 'pointer', border: '1px solid rgba(200,160,74,0.3)', background: tab === t ? '#c8a04a' : 'transparent', color: tab === t ? '#0e120b' : '#b8a87a' })
 
   return (
     <div style={{ minHeight: '100vh', background: '#0e120b', color: '#f0e6c8', padding: '2rem', fontFamily: 'Georgia, serif' }}>
@@ -73,9 +71,9 @@ export default function AdminPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '2.5rem', flexWrap: 'wrap' }}>
-          {(['gastos', 'ingresos', 'hitos', 'temporadas', 'donaciones', 'video'] as Tab[]).map(t => (
+          {(['gastos', 'ingresos', 'hitos', 'temporadas', 'donaciones', 'patreon', 'video'] as Tab[]).map(t => (
             <button key={t} onClick={() => setTab(t)} style={tabBtn(t)}>
-              {t === 'video' ? '▶ Vídeo' : t === 'temporadas' ? '📅 Años' : t === 'donaciones' ? '💰 Donaciones' : t}
+              {t === 'video' ? '▶ Vídeo' : t === 'temporadas' ? '📅 Años' : t === 'donaciones' ? '💰 Donac.' : t === 'patreon' ? '🔒 Patreon' : t}
             </button>
           ))}
         </div>
@@ -84,7 +82,6 @@ export default function AdminPage() {
           <div style={{ padding: '1rem', marginBottom: '1.5rem', background: msg.startsWith('✓') ? 'rgba(39,174,96,0.1)' : 'rgba(192,57,43,0.1)', border: `1px solid ${msg.startsWith('✓') ? 'rgba(39,174,96,0.4)' : 'rgba(192,57,43,0.4)'}`, color: msg.startsWith('✓') ? '#2ecc71' : '#e74c3c', fontFamily: 'monospace', fontSize: '0.85rem' }}>{msg}</div>
         )}
 
-        {/* ── GASTOS ── */}
         {tab === 'gastos' && (
           <div>
             <form onSubmit={saveGasto} style={{ marginBottom: '3rem' }}>
@@ -113,7 +110,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ── INGRESOS ── */}
         {tab === 'ingresos' && (
           <div>
             <form onSubmit={saveIngreso} style={{ marginBottom: '3rem' }}>
@@ -141,6 +137,7 @@ export default function AdminPage() {
         {tab === 'hitos' && <HitosTab onMsg={setMsg} />}
         {tab === 'temporadas' && <TemporadasTab onMsg={setMsg} onTemporadasChange={setTemporadas} />}
         {tab === 'donaciones' && <DonacionesTab onMsg={setMsg} />}
+        {tab === 'patreon' && <PatreonTab onMsg={setMsg} />}
         {tab === 'video' && <VideoTab onMsg={setMsg} />}
       </div>
     </div>
@@ -150,10 +147,7 @@ export default function AdminPage() {
 function GastosLista({ onMsg }: { onMsg: (m: string) => void }) {
   const [gastos, setGastos] = useState<any[]>([])
   const [temporadas, setTemporadas] = useState<any[]>([])
-  useEffect(() => {
-    cargar()
-    createClient().from('temporadas').select('*').order('año').then(({ data }) => setTemporadas(data ?? []))
-  }, [])
+  useEffect(() => { cargar(); createClient().from('temporadas').select('*').order('año').then(({ data }) => setTemporadas(data ?? [])) }, [])
   async function cargar() { const { data } = await createClient().from('gastos').select('*').order('fecha', { ascending: false }); setGastos(data ?? []) }
   async function eliminar(id: number) {
     if (!confirm('¿Eliminar este gasto?')) return
@@ -163,7 +157,7 @@ function GastosLista({ onMsg }: { onMsg: (m: string) => void }) {
   const getAño = (tid: number) => temporadas.find(t => t.id === tid)?.año ?? '—'
   return (
     <div>
-      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>Gastos registrados ({gastos.length})</div>
+      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>Gastos ({gastos.length})</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
         {gastos.map(g => (
           <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.8rem 1rem', background: '#1b2415', border: '1px solid rgba(200,160,74,0.15)' }}>
@@ -185,10 +179,7 @@ function GastosLista({ onMsg }: { onMsg: (m: string) => void }) {
 function IngresosLista({ onMsg }: { onMsg: (m: string) => void }) {
   const [ingresos, setIngresos] = useState<any[]>([])
   const [temporadas, setTemporadas] = useState<any[]>([])
-  useEffect(() => {
-    cargar()
-    createClient().from('temporadas').select('*').order('año').then(({ data }) => setTemporadas(data ?? []))
-  }, [])
+  useEffect(() => { cargar(); createClient().from('temporadas').select('*').order('año').then(({ data }) => setTemporadas(data ?? [])) }, [])
   async function cargar() { const { data } = await createClient().from('ingresos').select('*').order('fecha', { ascending: false }); setIngresos(data ?? []) }
   async function eliminar(id: number) {
     if (!confirm('¿Eliminar este ingreso?')) return
@@ -198,20 +189,157 @@ function IngresosLista({ onMsg }: { onMsg: (m: string) => void }) {
   const getAño = (tid: number) => temporadas.find(t => t.id === tid)?.año ?? '—'
   return (
     <div>
-      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>Ingresos registrados ({ingresos.length})</div>
+      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>Ingresos ({ingresos.length})</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
         {ingresos.map(i => (
           <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.8rem 1rem', background: '#1b2415', border: '1px solid rgba(200,160,74,0.15)' }}>
             <span style={{ fontSize: '1.3rem' }}>{i.emoji}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f0e6c8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{i.nombre}</div>
-              <div style={{ fontSize: '0.7rem', color: '#b8a87a', fontFamily: 'monospace' }}>{i.fecha} · {i.categoria} · <span style={{ color: '#c8a04a' }}>{getAño(i.temporada_id)}</span></div>
+              <div style={{ fontSize: '0.7rem', color: '#b8a87a', fontFamily: 'monospace' }}>{i.fecha} · <span style={{ color: '#c8a04a' }}>{getAño(i.temporada_id)}</span></div>
             </div>
             <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: '#2ecc71', fontWeight: 700, whiteSpace: 'nowrap' }}>+{Number(i.importe).toLocaleString('es-ES')} €</div>
             <button onClick={() => eliminar(i.id)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.3rem 0.7rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', flexShrink: 0 }}>✕</button>
           </div>
         ))}
         {ingresos.length === 0 && <div style={{ color: '#b8a87a', fontStyle: 'italic' }}>Sin ingresos registrados</div>}
+      </div>
+    </div>
+  )
+}
+
+function PatreonTab({ onMsg }: { onMsg: (m: string) => void }) {
+  const [contenidos, setContenidos] = useState<any[]>([])
+  const [patreonUrl, setPatreonUrl] = useState('')
+  const [patreonTexto, setPatreonTexto] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [nuevo, setNuevo] = useState({ titulo: '', miniatura_url: '', enlace: '' })
+
+  useEffect(() => {
+    cargar()
+    const s = createClient()
+    s.from('configuracion').select('clave, valor').in('clave', ['patreon_url', 'patreon_texto']).then(({ data }) => {
+      data?.forEach(c => {
+        if (c.clave === 'patreon_url') setPatreonUrl(c.valor ?? '')
+        if (c.clave === 'patreon_texto') setPatreonTexto(c.valor ?? '')
+      })
+    })
+  }, [])
+
+  async function cargar() {
+    const { data } = await createClient().from('patreon_contenido').select('*').order('orden')
+    setContenidos(data ?? [])
+  }
+
+  async function guardarConfig(e: React.FormEvent) {
+    e.preventDefault(); setLoading(true)
+    const s = createClient()
+    await Promise.all([
+      s.from('configuracion').upsert({ clave: 'patreon_url', valor: patreonUrl }),
+      s.from('configuracion').upsert({ clave: 'patreon_texto', valor: patreonTexto }),
+    ])
+    onMsg('✓ Configuración de Patreon guardada')
+    setLoading(false); setTimeout(() => onMsg(''), 3000)
+  }
+
+  async function añadirContenido(e: React.FormEvent) {
+    e.preventDefault(); setLoading(true)
+    const maxOrden = contenidos.length > 0 ? Math.max(...contenidos.map(c => c.orden)) + 1 : 1
+    const { error } = await createClient().from('patreon_contenido').insert({
+      titulo: nuevo.titulo, miniatura_url: nuevo.miniatura_url,
+      enlace: nuevo.enlace, orden: maxOrden, activo: true
+    })
+    if (error) onMsg('❌ Error: ' + error.message)
+    else { onMsg('✓ Contenido añadido'); setNuevo({ titulo: '', miniatura_url: '', enlace: '' }); cargar() }
+    setLoading(false); setTimeout(() => onMsg(''), 3000)
+  }
+
+  async function eliminar(id: number) {
+    if (!confirm('¿Eliminar este contenido?')) return
+    await createClient().from('patreon_contenido').delete().eq('id', id)
+    onMsg('✓ Contenido eliminado'); cargar(); setTimeout(() => onMsg(''), 3000)
+  }
+
+  async function toggleActivo(id: number, activo: boolean) {
+    await createClient().from('patreon_contenido').update({ activo: !activo }).eq('id', id)
+    cargar()
+  }
+
+  const inp = { background: '#1b2415', border: '1px solid rgba(200,160,74,0.3)', color: '#f0e6c8', padding: '0.7rem 1rem', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', outline: 'none' } as React.CSSProperties
+  const lbl = { display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: '#b8a87a', marginBottom: '0.4rem', fontFamily: 'monospace' }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+
+      {/* Config general */}
+      <form onSubmit={guardarConfig} style={{ padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(255,66,61,0.2)' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#FF424D', marginBottom: '1.2rem' }}>🔒 Configuración Patreon</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.2rem' }}>
+          <div>
+            <label style={lbl}>URL de tu página Patreon</label>
+            <input style={inp} value={patreonUrl} onChange={e => setPatreonUrl(e.target.value)} placeholder="https://patreon.com/juanvilas" />
+          </div>
+          <div>
+            <label style={lbl}>Texto descriptivo</label>
+            <textarea style={{...inp, height: 80, resize: 'vertical'}} value={patreonTexto} onChange={e => setPatreonTexto(e.target.value)} placeholder="Accede a versiones extendidas de mis vídeos..." />
+          </div>
+        </div>
+        <button type="submit" disabled={loading} style={{ background: '#FF424D', color: 'white', padding: '0.8rem 2rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>
+          {loading ? 'Guardando...' : '✓ Guardar configuración'}
+        </button>
+      </form>
+
+      {/* Añadir contenido */}
+      <form onSubmit={añadirContenido} style={{ padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(255,66,61,0.2)' }}>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#FF424D', marginBottom: '1.2rem' }}>+ Añadir miniatura</div>
+        <p style={{ color: '#b8a87a', fontStyle: 'italic', fontSize: '0.85rem', marginBottom: '1.2rem', lineHeight: 1.6 }}>
+          Para la miniatura puedes usar la URL de una imagen subida a Google Drive, Imgur, o cualquier alojamiento de imágenes. El enlace llevará al usuario a tu Patreon o al vídeo exclusivo.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.2rem' }}>
+          <div>
+            <label style={lbl}>Título del vídeo *</label>
+            <input style={inp} required value={nuevo.titulo} onChange={e => setNuevo({...nuevo, titulo: e.target.value})} placeholder="Ej: Poda del olivo — versión extendida 2h" />
+          </div>
+          <div>
+            <label style={lbl}>URL de la miniatura *</label>
+            <input style={inp} required value={nuevo.miniatura_url} onChange={e => setNuevo({...nuevo, miniatura_url: e.target.value})} placeholder="https://i.imgur.com/tu-imagen.jpg" />
+            {nuevo.miniatura_url && (
+              <div style={{ marginTop: '0.8rem', position: 'relative', paddingBottom: '30%', overflow: 'hidden', border: '1px solid rgba(200,160,74,0.2)' }}>
+                <img src={nuevo.miniatura_url} alt="preview" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+            )}
+          </div>
+          <div>
+            <label style={lbl}>Enlace al contenido *</label>
+            <input style={inp} required value={nuevo.enlace} onChange={e => setNuevo({...nuevo, enlace: e.target.value})} placeholder="https://patreon.com/posts/tu-post" />
+          </div>
+        </div>
+        <button type="submit" disabled={loading} style={{ background: '#FF424D', color: 'white', padding: '0.8rem 2rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>
+          {loading ? 'Guardando...' : '+ Añadir miniatura'}
+        </button>
+      </form>
+
+      {/* Lista contenidos */}
+      <div>
+        <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>Miniaturas ({contenidos.length})</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+          {contenidos.map(c => (
+            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.8rem 1rem', background: c.activo ? '#1b2415' : 'rgba(0,0,0,0.3)', border: `1px solid ${c.activo ? 'rgba(255,66,61,0.2)' : 'rgba(200,160,74,0.08)'}`, opacity: c.activo ? 1 : 0.5 }}>
+              {c.miniatura_url && (
+                <img src={c.miniatura_url} alt={c.titulo} style={{ width: 70, height: 40, objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(200,160,74,0.2)' }} />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f0e6c8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.titulo}</div>
+                <div style={{ fontSize: '0.68rem', color: '#b8a87a', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.enlace}</div>
+              </div>
+              <button onClick={() => toggleActivo(c.id, c.activo)} style={{ background: c.activo ? 'rgba(39,174,96,0.1)' : 'rgba(200,160,74,0.1)', border: `1px solid ${c.activo ? 'rgba(39,174,96,0.3)' : 'rgba(200,160,74,0.2)'}`, color: c.activo ? '#2ecc71' : '#b8a87a', padding: '0.3rem 0.7rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.65rem', flexShrink: 0 }}>
+                {c.activo ? '✓ Visible' : '○ Oculto'}
+              </button>
+              <button onClick={() => eliminar(c.id)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.3rem 0.7rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', flexShrink: 0 }}>✕</button>
+            </div>
+          ))}
+          {contenidos.length === 0 && <div style={{ color: '#b8a87a', fontStyle: 'italic' }}>Sin miniaturas añadidas</div>}
+        </div>
       </div>
     </div>
   )
@@ -224,14 +352,13 @@ function DonacionesTab({ onMsg }: { onMsg: (m: string) => void }) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    createClient().from('configuracion').select('clave, valor').in('clave', ['bizum_numero', 'paypal_usuario', 'contacto_email'])
-      .then(({ data }) => {
-        data?.forEach(c => {
-          if (c.clave === 'bizum_numero') setBizum(c.valor ?? '')
-          if (c.clave === 'paypal_usuario') setPaypal(c.valor ?? '')
-          if (c.clave === 'contacto_email') setEmail(c.valor ?? '')
-        })
+    createClient().from('configuracion').select('clave, valor').in('clave', ['bizum_numero', 'paypal_usuario', 'contacto_email']).then(({ data }) => {
+      data?.forEach(c => {
+        if (c.clave === 'bizum_numero') setBizum(c.valor ?? '')
+        if (c.clave === 'paypal_usuario') setPaypal(c.valor ?? '')
+        if (c.clave === 'contacto_email') setEmail(c.valor ?? '')
       })
+    })
   }, [])
 
   async function guardar(e: React.FormEvent) {
@@ -252,32 +379,23 @@ function DonacionesTab({ onMsg }: { onMsg: (m: string) => void }) {
   return (
     <div>
       <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1.5rem' }}>💰 Datos de donación</div>
-      <p style={{ color: '#b8a87a', fontStyle: 'italic', fontSize: '0.9rem', marginBottom: '2rem', lineHeight: 1.7 }}>
-        Configura los métodos de pago que aparecen en la sección de donaciones de la web. Deja en blanco los que no quieras mostrar.
-      </p>
       <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
         <div style={{ padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(28,196,162,0.2)' }}>
           <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(28,196,162,0.8)', marginBottom: '1rem' }}>📱 Bizum</div>
           <label style={lbl}>Número de teléfono</label>
           <input style={inp} value={bizum} onChange={e => setBizum(e.target.value)} placeholder="Ej: 612345678" />
-          <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontStyle: 'italic', color: '#b8a87a', opacity: 0.7 }}>El visitante podrá copiar este número al pulsar la tarjeta de Bizum</div>
         </div>
-
         <div style={{ padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(0,112,186,0.2)' }}>
           <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(0,112,186,0.8)', marginBottom: '1rem' }}>💳 PayPal</div>
           <label style={lbl}>Usuario de PayPal.me</label>
           <input style={inp} value={paypal} onChange={e => setPaypal(e.target.value)} placeholder="Ej: juanvilas" />
-          <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontStyle: 'italic', color: '#b8a87a', opacity: 0.7 }}>Se generará el enlace paypal.me/<strong style={{ color: '#c8a04a' }}>{paypal || 'tuusuario'}</strong></div>
+          <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontStyle: 'italic', color: '#b8a87a', opacity: 0.7 }}>Enlace: paypal.me/<strong style={{ color: '#c8a04a' }}>{paypal || 'tuusuario'}</strong></div>
         </div>
-
         <div style={{ padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(200,160,74,0.2)' }}>
           <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1rem' }}>✉️ Email de contacto</div>
           <label style={lbl}>Correo electrónico</label>
           <input style={inp} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Ej: hola@juanvilas.com" />
-          <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', fontStyle: 'italic', color: '#b8a87a', opacity: 0.7 }}>Para quien quiera contactar contigo de otra manera</div>
         </div>
-
         <button type="submit" disabled={loading} style={{ background: '#c8a04a', color: '#0e120b', padding: '0.9rem 2.5rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1, alignSelf: 'flex-start' }}>
           {loading ? 'Guardando...' : '✓ Guardar datos'}
         </button>
@@ -292,11 +410,7 @@ function TemporadasTab({ onMsg, onTemporadasChange }: { onMsg: (m: string) => vo
   const [loading, setLoading] = useState(false)
 
   useEffect(() => { cargar() }, [])
-
-  async function cargar() {
-    const { data } = await createClient().from('temporadas').select('*').order('año')
-    setTemporadas(data ?? []); onTemporadasChange(data ?? [])
-  }
+  async function cargar() { const { data } = await createClient().from('temporadas').select('*').order('año'); setTemporadas(data ?? []); onTemporadasChange(data ?? []) }
 
   async function añadir(e: React.FormEvent) {
     e.preventDefault(); setLoading(true)
@@ -319,7 +433,6 @@ function TemporadasTab({ onMsg, onTemporadasChange }: { onMsg: (m: string) => vo
     <div>
       <form onSubmit={añadir} style={{ marginBottom: '3rem', padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(200,160,74,0.2)' }}>
         <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1rem' }}>+ Nueva temporada</div>
-        <p style={{ color: '#b8a87a', fontStyle: 'italic', fontSize: '0.9rem', marginBottom: '1.2rem', lineHeight: 1.7 }}>Crea una nueva temporada al inicio de cada año. Los gastos e ingresos son independientes por temporada.</p>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '0.4rem', fontFamily: 'monospace' }}>Año</label>
@@ -396,9 +509,9 @@ function HitosTab({ onMsg }: { onMsg: (m: string) => void }) {
       <form onSubmit={addHito} style={{ marginBottom: '3rem', padding: '1.5rem', background: '#1b2415', border: '1px solid rgba(200,160,74,0.2)' }}>
         <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1.2rem' }}>+ Añadir hito</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-          <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Nombre <span style={{ opacity: 0.5 }}>(opcional)</span></label><input style={inp} value={nuevo.nombre} onChange={e => setNuevo({...nuevo, nombre: e.target.value})} placeholder="Ej: Tractor pequeño" /></div>
-          <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Descripción <span style={{ opacity: 0.5 }}>(opcional)</span></label><input style={inp} value={nuevo.descripcion} onChange={e => setNuevo({...nuevo, descripcion: e.target.value})} placeholder="Ej: Para labores de suelo" /></div>
-          <div><label style={lbl}>Emoji</label><input style={inp} value={nuevo.emoji} onChange={e => setNuevo({...nuevo, emoji: e.target.value})} placeholder="🎯" /></div>
+          <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Nombre</label><input style={inp} value={nuevo.nombre} onChange={e => setNuevo({...nuevo, nombre: e.target.value})} placeholder="Ej: Tractor pequeño" /></div>
+          <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Descripción</label><input style={inp} value={nuevo.descripcion} onChange={e => setNuevo({...nuevo, descripcion: e.target.value})} placeholder="Ej: Para labores de suelo" /></div>
+          <div><label style={lbl}>Emoji</label><input style={inp} value={nuevo.emoji} onChange={e => setNuevo({...nuevo, emoji: e.target.value})} /></div>
           <div><label style={lbl}>Fecha / objetivo</label><input style={inp} value={nuevo.fecha_texto} onChange={e => setNuevo({...nuevo, fecha_texto: e.target.value})} placeholder="Ej: Noviembre 2026" /></div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', gridColumn: '1/-1' }}>
             <input type="checkbox" id="comp-check" checked={nuevo.completado} onChange={e => setNuevo({...nuevo, completado: e.target.checked})} style={{ width: 18, height: 18, accentColor: '#27ae60', cursor: 'pointer' }} />
@@ -408,7 +521,6 @@ function HitosTab({ onMsg }: { onMsg: (m: string) => void }) {
         </div>
         <button type="submit" disabled={loading} style={{ background: '#c8a04a', color: '#0e120b', padding: '0.8rem 2rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>{loading ? 'Guardando...' : '+ Añadir hito'}</button>
       </form>
-      <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '1rem' }}>Hitos ({hitos.length})</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
         {hitos.map((h, idx) => (
           <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '1rem', background: h.completado ? 'rgba(107,140,58,0.08)' : '#1b2415', border: `1px solid ${h.completado ? 'rgba(107,140,58,0.4)' : 'rgba(200,160,74,0.15)'}` }}>
@@ -419,7 +531,7 @@ function HitosTab({ onMsg }: { onMsg: (m: string) => void }) {
             <span style={{ fontSize: '1.4rem', flexShrink: 0 }}>{h.emoji}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 600, color: h.completado ? '#8fbc50' : '#f0e6c8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.nombre || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>Sin nombre</span>}</div>
-              <div style={{ fontSize: '0.72rem', color: '#b8a87a', fontFamily: 'monospace' }}>{h.completado ? `✓ Completado ${h.fecha_completado ?? ''}` : (h.fecha_texto || h.año_objetivo || '—')}</div>
+              <div style={{ fontSize: '0.72rem', color: '#b8a87a', fontFamily: 'monospace' }}>{h.completado ? `✓ ${h.fecha_completado ?? ''}` : (h.fecha_texto || '—')}</div>
             </div>
             <button onClick={() => toggle(h.id, h.completado)} style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, background: h.completado ? '#27ae60' : 'transparent', border: `2px solid ${h.completado ? '#27ae60' : 'rgba(200,160,74,0.4)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.8rem', cursor: 'pointer' }}>{h.completado ? '✓' : ''}</button>
             <button onClick={() => eliminar(h.id)} style={{ background: 'rgba(192,57,43,0.15)', border: '1px solid rgba(192,57,43,0.3)', color: '#e74c3c', padding: '0.3rem 0.7rem', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', flexShrink: 0 }}>✕</button>
@@ -435,15 +547,12 @@ function VideoTab({ onMsg }: { onMsg: (m: string) => void }) {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    createClient().from('configuracion').select('valor').eq('clave', 'video_youtube').single().then(({ data }) => { if (data?.valor) setUrl(data.valor) })
-  }, [])
+  useEffect(() => { createClient().from('configuracion').select('valor').eq('clave', 'video_youtube').single().then(({ data }) => { if (data?.valor) setUrl(data.valor) }) }, [])
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault(); setLoading(true)
     await createClient().from('configuracion').upsert({ clave: 'video_youtube', valor: url })
-    onMsg('✓ Vídeo actualizado — visible en ~1 minuto')
-    setLoading(false); setTimeout(() => onMsg(''), 4000)
+    onMsg('✓ Vídeo actualizado'); setLoading(false); setTimeout(() => onMsg(''), 4000)
   }
 
   async function quitar() {
@@ -457,20 +566,18 @@ function VideoTab({ onMsg }: { onMsg: (m: string) => void }) {
   return (
     <div>
       <div style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c8a04a', marginBottom: '1.5rem' }}>▶ Vídeo principal</div>
-      <p style={{ color: '#b8a87a', fontStyle: 'italic', fontSize: '0.9rem', marginBottom: '2rem', lineHeight: 1.7 }}>Pega la URL de YouTube. Si lo dejas vacío no aparece nada en la página principal.</p>
       <form onSubmit={guardar} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div>
           <label style={{ display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '0.4rem', fontFamily: 'monospace' }}>URL de YouTube</label>
           <input style={{ background: '#1b2415', border: '1px solid rgba(200,160,74,0.3)', color: '#f0e6c8', padding: '0.7rem 1rem', width: '100%', fontFamily: 'inherit', fontSize: '0.95rem', outline: 'none' }} value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          <button type="submit" disabled={loading} style={{ background: '#c8a04a', color: '#0e120b', padding: '0.9rem 2rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>{loading ? 'Guardando...' : '✓ Guardar vídeo'}</button>
-          {url && <button type="button" onClick={quitar} disabled={loading} style={{ background: 'rgba(192,57,43,0.15)', color: '#e74c3c', padding: '0.9rem 2rem', border: '1px solid rgba(192,57,43,0.3)', fontFamily: 'monospace', fontSize: '0.8rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase' }}>✕ Quitar</button>}
+          <button type="submit" disabled={loading} style={{ background: '#c8a04a', color: '#0e120b', padding: '0.9rem 2rem', border: 'none', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.15em', cursor: 'pointer', textTransform: 'uppercase', opacity: loading ? 0.6 : 1 }}>{loading ? 'Guardando...' : '✓ Guardar'}</button>
+          {url && <button type="button" onClick={quitar} style={{ background: 'rgba(192,57,43,0.15)', color: '#e74c3c', padding: '0.9rem 2rem', border: '1px solid rgba(192,57,43,0.3)', fontFamily: 'monospace', fontSize: '0.8rem', cursor: 'pointer', textTransform: 'uppercase' }}>✕ Quitar</button>}
         </div>
       </form>
       {videoId && (
         <div style={{ marginTop: '2rem' }}>
-          <div style={{ fontFamily: 'monospace', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#b8a87a', marginBottom: '0.8rem' }}>Vista previa</div>
           <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', border: '1px solid rgba(200,160,74,0.2)' }}>
             <iframe src={`https://www.youtube.com/embed/${videoId}?rel=0`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} allowFullScreen />
           </div>
