@@ -11,17 +11,17 @@ export default async function Home() {
   const cookieStore = await cookies()
   const supabase = await createClient(cookieStore)
 
-  const { data: temporada } = await supabase
+  const { data: temporadaActiva } = await supabase
     .from('temporadas').select('*').eq('activa', true).single()
 
   const { data: gastos } = await supabase
-    .from('gastos').select('*').eq('temporada_id', temporada?.id).order('fecha', { ascending: false })
+    .from('gastos').select('*').eq('temporada_id', temporadaActiva?.id).order('fecha', { ascending: false })
 
   const { data: ingresos } = await supabase
-    .from('ingresos').select('*').eq('temporada_id', temporada?.id).order('fecha', { ascending: false })
+    .from('ingresos').select('*').eq('temporada_id', temporadaActiva?.id).order('fecha', { ascending: false })
 
-  const { data: temporadasRaw } = await supabase
-    .from('temporadas').select('*').order('id')
+  const { data: temporadas } = await supabase
+    .from('temporadas').select('*').order('año')
 
   const { data: hitos } = await supabase
     .from('hitos').select('*').order('orden')
@@ -30,8 +30,8 @@ export default async function Home() {
     .from('configuracion').select('valor').eq('clave', 'video_youtube').single()
 
   const videoUrl = config?.valor ?? ''
-  const totalGastos = gastos?.reduce((acc, g) => acc + Number(g.importe), 0) ?? 0
-  const totalIngresos = ingresos?.reduce((acc, i) => acc + Number(i.importe), 0) ?? 0
+  const totalGastosInicial = gastos?.reduce((acc, g) => acc + Number(g.importe), 0) ?? 0
+  const totalIngresosInicial = ingresos?.reduce((acc, i) => acc + Number(i.importe), 0) ?? 0
 
   return (
     <>
@@ -43,17 +43,22 @@ export default async function Home() {
           <li><a href="#donaciones">Apoyar</a></li>
           <li><a href="https://youtube.com/@juanvilas" target="_blank">YouTube ↗</a></li>
         </ul>
+        <div className="nav-mobile-links">
+          <a href="#finanzas">Cuentas</a>
+          <a href="#recorrido">Ruta</a>
+          <a href="#donaciones">Apoyar</a>
+        </div>
       </nav>
 
       <main>
         <HeroSection videoUrl={videoUrl} />
         <FinanzasSection
-          temporada={temporada}
-          temporadas={temporadasRaw ?? []}
-          gastos={gastos ?? []}
-          ingresos={ingresos ?? []}
-          totalGastos={totalGastos}
-          totalIngresos={totalIngresos}
+          temporadaActiva={temporadaActiva}
+          temporadas={temporadas ?? []}
+          gastosIniciales={gastos ?? []}
+          ingresosIniciales={ingresos ?? []}
+          totalGastosInicial={totalGastosInicial}
+          totalIngresosInicial={totalIngresosInicial}
         />
         <RecorridoSection hitos={hitos ?? []} />
         <DonacionesSection />
