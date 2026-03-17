@@ -58,7 +58,7 @@ export default function DonacionesSection({ bizumNumero, paypalUsuario, contacto
 
           {/* PayPal */}
           {paypalUsuario && (
-            <a href={`https://paypal.me/${paypalUsuario}/${selectedAmount}EUR`} target="_blank" style={{
+            <a href={`https://paypal.me/${paypalUsuario}`} target="_blank" style={{
               background: 'var(--bg-card)', border: '1px solid var(--border)',
               padding: '2rem 1.5rem', width: 'clamp(160px, 28vw, 220px)', textAlign: 'center',
               textDecoration: 'none', cursor: 'pointer', display: 'flex',
